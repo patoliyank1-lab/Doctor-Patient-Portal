@@ -1,39 +1,40 @@
 {
   "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "bun run --watch dist/index.js",
+    "start": "bun run --watch 'dist/**/*'  ./src/index.js",
     "dev": "bun run --watch src/index.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "prisma": "prisma studio",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.7.0",
+    "tsx": "^4.21.0"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.2"
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.6.0",
-    "@types/pg": "^8.20.0",
-    "eslint": "^10.2.0",
-    "globals": "^17.4.0",
-    "jiti": "^2.6.1",
-    "prisma": "^6.19.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.1"
   }
 }
