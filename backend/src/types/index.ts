@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "../../prisma/generated/client/enums";
 
 export interface JWTPayload {
   // User identity
@@ -12,4 +12,11 @@ export interface JWTPayload {
 
   // Patient-specific (only present when role === "patient")
   patientId?: string;
+}
+
+
+export interface UserType {
+email:string;
+passwordHash:string;
+role:Role;
 }
