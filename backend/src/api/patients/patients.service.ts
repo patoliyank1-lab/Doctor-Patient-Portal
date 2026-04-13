@@ -1,6 +1,6 @@
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { ListPatientsQuery } from "./patients.validators";
+import type { CreatePatientProfileInput, ListPatientsQuery } from "./patients.validators";
 import { Role } from "../../../prisma/generated/client/enums";
 
 const patientListSelect = {
@@ -20,6 +20,22 @@ const patientListSelect = {
 
 const patientDetailSelect = {
   ...patientListSelect,
+} as const;
+
+const selfPatientSelect = {
+  id: true,
+  userId: true,
+  firstName: true,
+  lastName: true,
+  dateOfBirth: true,
+  gender: true,
+  phone: true,
+  address: true,
+  bloodGroup: true,
+  profileImageUrl: true,
+  createdAt: true,
+  updatedAt: true,
+  user: { select: { email: true } },
 } as const;
 
 export const listPatients = async (query: ListPatientsQuery) => {
@@ -66,6 +82,57 @@ export const listPatients = async (query: ListPatientsQuery) => {
         totalPages,
       },
     };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const getPatientProfileByUserId = async (userId: string) => {
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { userId },
+      select: selfPatientSelect,
+    });
+    if (!patient) throw new AppError("Patient profile not found", 404);
+    return patient;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const createPatientProfileForUser = async (userId: string, input: CreatePatientProfileInput) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, isActive: true, deletedAt: true },
+    });
+    if (!user || !user.isActive || user.deletedAt) throw new AppError("Unauthorized", 401);
+    if (user.role !== Role.PATIENT) throw new AppError("Forbidden", 403);
+
+    const existing = await prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (existing) throw new AppError("Patient profile already exists", 409);
+
+    const created = await prisma.patient.create({
+      data: {
+        userId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        dateOfBirth: input.dateOfBirth,
+        gender: input.gender,
+        phone: input.phone,
+        address: input.address,
+        bloodGroup: input.bloodGroup,
+        profileImageUrl: input.profileImageUrl,
+      },
+      select: selfPatientSelect,
+    });
+
+    return created;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

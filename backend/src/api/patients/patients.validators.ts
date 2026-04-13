@@ -7,6 +7,14 @@ const intFromString = (val: unknown) => {
   return Number.isFinite(n) ? n : NaN;
 };
 
+const dateFromString = (val: unknown) => {
+  if (val === undefined || val === null || val === "") return undefined;
+  if (val instanceof Date) return Number.isFinite(val.getTime()) ? val : new Date("invalid");
+  const s = typeof val === "string" ? val.trim() : String(val);
+  const d = new Date(s);
+  return Number.isFinite(d.getTime()) ? d : new Date("invalid");
+};
+
 export const listPatientsQuerySchema = z
   .object({
     page: z.any().optional().transform(intFromString),
@@ -44,4 +52,25 @@ export const patientIdParamSchema = z.object({
 });
 
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
+
+export const createPatientProfileSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(100, "First name is too long"),
+  lastName: z.string().trim().min(1, "Last name is required").max(100, "Last name is too long"),
+  dateOfBirth: z.any().optional().transform(dateFromString),
+  gender: z.nativeEnum(Gender).optional(),
+  phone: z.string().trim().min(1, "Phone cannot be empty").max(20, "Phone is too long").optional(),
+  address: z.string().trim().min(1, "Address cannot be empty").max(1000, "Address is too long").optional(),
+  bloodGroup: z.string().trim().min(1, "Blood group cannot be empty").max(5, "Blood group is too long").optional(),
+  profileImageUrl: z.string().trim().url("profileImageUrl must be a valid URL").optional(),
+}).superRefine((val, ctx) => {
+  if (val.dateOfBirth instanceof Date && !Number.isFinite(val.dateOfBirth.getTime())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dateOfBirth"],
+      message: "dateOfBirth must be a valid date",
+    });
+  }
+});
+
+export type CreatePatientProfileInput = z.infer<typeof createPatientProfileSchema>;
 

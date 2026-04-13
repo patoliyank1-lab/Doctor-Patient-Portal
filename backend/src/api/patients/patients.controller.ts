@@ -3,7 +3,12 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import { ZodError } from "zod";
 import * as patientsService from "./patients.service";
-import { listPatientsQuerySchema, patientIdParamSchema } from "./patients.validators";
+import {
+  createPatientProfileSchema,
+  listPatientsQuerySchema,
+  patientIdParamSchema,
+  type CreatePatientProfileInput,
+} from "./patients.validators";
 
 /**
  * @description List patients with pagination/filtering.
@@ -47,6 +52,44 @@ export const getPatientById = asyncHandler(async (req, res) => {
     });
 
     formattedResponse(res, 200, patient, "Patient fetched successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Get own patient profile.
+ * @route GET /api/v1/patients/me
+ * @access Patient (cookie JWT)
+ */
+export const getMyPatientProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const patient = await patientsService.getPatientProfileByUserId(req.user.userId);
+    formattedResponse(res, 200, patient, "Patient profile fetched successfully");
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Create own patient profile.
+ * @route POST /api/v1/patients/me
+ * @access Patient (cookie JWT)
+ */
+export const createMyPatientProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input: CreatePatientProfileInput = createPatientProfileSchema.parse(req.body);
+    const created = await patientsService.createPatientProfileForUser(req.user.userId, input);
+    formattedResponse(res, 201, created, "Patient profile created successfully");
   } catch (error) {
     if (error instanceof ZodError) {
       throw new AppError("Validation failed", 400, {
