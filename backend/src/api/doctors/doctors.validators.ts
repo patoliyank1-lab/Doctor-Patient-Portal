@@ -100,9 +100,57 @@ export const listDoctorsQuerySchema = z
 
 export type ListDoctorsQuery = z.infer<typeof listDoctorsQuerySchema>;
 
+export const pendingDoctorsQuerySchema = z
+  .object({
+    page: z.any().optional().transform(intFromString),
+    limit: z.any().optional().transform(intFromString),
+    specialization: z.string().trim().min(1).optional(),
+    search: z.string().trim().min(1).optional(), // name/email
+  })
+  .superRefine((val, ctx) => {
+    const page = val.page ?? 1;
+    const limit = val.limit ?? 10;
+
+    if (!Number.isInteger(page) || page < 1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["page"], message: "page must be an integer >= 1" });
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["limit"],
+        message: "limit must be an integer between 1 and 100",
+      });
+    }
+  })
+  .transform((val) => ({
+    page: (val.page ?? 1) as number,
+    limit: (val.limit ?? 10) as number,
+    specialization: val.specialization,
+    search: val.search,
+  }));
+
+export type PendingDoctorsQuery = z.infer<typeof pendingDoctorsQuerySchema>;
+
 export const doctorIdParamSchema = z.object({
   id: z.string().uuid("Invalid doctor id"),
 });
 
 export type DoctorIdParam = z.infer<typeof doctorIdParamSchema>;
+
+export const updateDoctorStatusBodySchema = z
+  .object({
+    status: z.enum(["approved", "rejected", "suspended"]),
+    reason: z.string().trim().min(1, "reason is required").max(500, "reason is too long").optional(),
+  })
+  .superRefine((val, ctx) => {
+    if ((val.status === "rejected" || val.status === "suspended") && !val.reason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reason"],
+        message: "reason is required for rejected/suspended status",
+      });
+    }
+  });
+
+export type UpdateDoctorStatusBody = z.infer<typeof updateDoctorStatusBodySchema>;
 

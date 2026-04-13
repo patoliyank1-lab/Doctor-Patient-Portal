@@ -1,7 +1,7 @@
 import { prisma } from "../../config/database";
 import { DoctorApprovalStatus } from "../../../prisma/generated/client/enums";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { ListDoctorsQuery } from "./doctors.validators";
+import type { ListDoctorsQuery, PendingDoctorsQuery } from "./doctors.validators";
 
 const doctorListSelect = {
   id: true,
@@ -90,6 +90,117 @@ export const getApprovedDoctorById = async (doctorId: string) => {
     });
     if (!doctor) throw new AppError("Doctor not found", 404);
     return doctor;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const listPendingDoctors = async (query: PendingDoctorsQuery) => {
+  try {
+    const where: any = {
+      approvalStatus: DoctorApprovalStatus.PENDING,
+    };
+
+    if (query.specialization) {
+      where.specializations = { has: query.specialization };
+    }
+
+    if (query.search) {
+      const term = query.search;
+      where.OR = [
+        { firstName: { contains: term, mode: "insensitive" } },
+        { lastName: { contains: term, mode: "insensitive" } },
+        { user: { email: { contains: term, mode: "insensitive" } } },
+      ];
+    }
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, doctors] = await Promise.all([
+      prisma.doctor.count({ where }),
+      prisma.doctor.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        select: {
+          ...doctorListSelect,
+          rejectionReason: true,
+          reviewedAt: true,
+          reviewedByAdminId: true,
+          user: { select: { email: true } },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+
+    return {
+      doctors,
+      pagination: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages,
+      },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const updateDoctorStatus = async (adminUserId: string, doctorId: string, input: { status: "approved" | "rejected" | "suspended"; reason?: string }) => {
+  try {
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: { id: true, approvalStatus: true },
+    });
+    if (!doctor) throw new AppError("Doctor not found", 404);
+
+    const current = doctor.approvalStatus;
+    const target =
+      input.status === "approved"
+        ? DoctorApprovalStatus.APPROVED
+        : input.status === "rejected"
+          ? DoctorApprovalStatus.REJECTED
+          : DoctorApprovalStatus.SUSPENDED;
+
+    // Business rules:
+    // - Only PENDING can be approved/rejected
+    // - Only APPROVED can be suspended
+    if ((target === DoctorApprovalStatus.APPROVED || target === DoctorApprovalStatus.REJECTED) && current !== DoctorApprovalStatus.PENDING) {
+      throw new AppError("Only pending doctors can be approved or rejected", 400);
+    }
+    if (target === DoctorApprovalStatus.SUSPENDED && current !== DoctorApprovalStatus.APPROVED) {
+      throw new AppError("Only approved doctors can be suspended", 400);
+    }
+
+    const updated = await prisma.doctor.update({
+      where: { id: doctorId },
+      data: {
+        approvalStatus: target,
+        rejectionReason:
+          target === DoctorApprovalStatus.REJECTED || target === DoctorApprovalStatus.SUSPENDED
+            ? input.reason
+            : null,
+        reviewedByAdminId: adminUserId,
+        reviewedAt: new Date(),
+      },
+      select: {
+        id: true,
+        userId: true,
+        approvalStatus: true,
+        rejectionReason: true,
+        reviewedByAdminId: true,
+        reviewedAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
