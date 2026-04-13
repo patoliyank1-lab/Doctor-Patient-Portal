@@ -3,7 +3,13 @@ import { DoctorApprovalStatus } from "../../../prisma/generated/client/enums";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import { Prisma } from "../../../prisma/generated/client/client";
 import { Role } from "../../../prisma/generated/client/enums";
-import type { CreateDoctorProfileInput, ListDoctorsQuery, PendingDoctorsQuery } from "./doctors.validators";
+import type {
+  CreateDoctorProfileInput,
+  ListDoctorsQuery,
+  PendingDoctorsQuery,
+  UpdateMyDoctorImageInput,
+  UpdateMyDoctorProfileInput,
+} from "./doctors.validators";
 
 const doctorListSelect = {
   id: true,
@@ -166,6 +172,65 @@ export const createDoctorProfileForUser = async (userId: string, input: CreateDo
         throw new AppError("Doctor profile already exists", 409);
       }
     }
+    throw new UnknownError(error);
+  }
+};
+
+export const updateMyDoctorProfile = async (userId: string, input: UpdateMyDoctorProfileInput) => {
+  try {
+    const existing = await prisma.doctor.findUnique({
+      where: { userId },
+      select: { id: true, approvalStatus: true },
+    });
+    if (!existing) throw new AppError("Doctor profile not found", 404);
+
+    const willRequireReapproval =
+      existing.approvalStatus === DoctorApprovalStatus.APPROVED &&
+      Object.keys(input).some((k) => k !== "profileImageUrl");
+
+    const updated = await prisma.doctor.update({
+      where: { userId },
+      data: {
+        ...input,
+        ...(willRequireReapproval
+          ? {
+              approvalStatus: DoctorApprovalStatus.PENDING,
+              reviewedByAdminId: null,
+              reviewedAt: null,
+              rejectionReason: null,
+            }
+          : {}),
+      },
+      select: selfDoctorSelect,
+    });
+
+    return {
+      doctor: updated,
+      reapprovalRequired: willRequireReapproval,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const updateMyDoctorImage = async (userId: string, input: UpdateMyDoctorImageInput) => {
+  try {
+    const existing = await prisma.doctor.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!existing) throw new AppError("Doctor profile not found", 404);
+
+    const updated = await prisma.doctor.update({
+      where: { userId },
+      data: { profileImageUrl: input.profileImageUrl },
+      select: selfDoctorSelect,
+    });
+
+    return updated;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
 };

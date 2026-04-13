@@ -184,3 +184,41 @@ export const updateDoctorStatusBodySchema = z
 
 export type UpdateDoctorStatusBody = z.infer<typeof updateDoctorStatusBodySchema>;
 
+export const updateMyDoctorProfileSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name cannot be empty").max(100, "First name is too long").optional(),
+    lastName: z.string().trim().min(1, "Last name cannot be empty").max(100, "Last name is too long").optional(),
+    specializations: z
+      .array(z.string().trim().min(1, "Specialization cannot be empty").max(100, "Specialization is too long"))
+      .min(1, "At least one specialization is required")
+      .optional(),
+    qualification: z.string().trim().min(1, "Qualification cannot be empty").optional(),
+    experienceYears: z
+      .number()
+      .int("Experience years must be an integer")
+      .min(0, "Experience years cannot be negative")
+      .max(80, "Experience years is too large")
+      .optional(),
+    bio: z.string().trim().min(1, "Bio cannot be empty").max(2000, "Bio is too long").optional(),
+    profileImageUrl: z.string().trim().url("profileImageUrl must be a valid URL").optional(),
+    consultationFee: consultationFeeSchema,
+  })
+  .superRefine((val, ctx) => {
+    const keys = Object.keys(val);
+    if (keys.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [],
+        message: "At least one field is required",
+      });
+    }
+  });
+
+export type UpdateMyDoctorProfileInput = z.infer<typeof updateMyDoctorProfileSchema>;
+
+export const updateMyDoctorImageSchema = z.object({
+  profileImageUrl: z.string().trim().url("profileImageUrl must be a valid URL"),
+});
+
+export type UpdateMyDoctorImageInput = z.infer<typeof updateMyDoctorImageSchema>;
+

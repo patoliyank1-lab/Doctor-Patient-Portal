@@ -9,6 +9,8 @@ import {
   listDoctorsQuerySchema,
   pendingDoctorsQuerySchema,
   type CreateDoctorProfileInput,
+  updateMyDoctorImageSchema,
+  updateMyDoctorProfileSchema,
   updateDoctorStatusBodySchema,
 } from "./doctors.validators";
 
@@ -126,6 +128,50 @@ export const createMyDoctorProfile = asyncHandler(async (req, res) => {
     const input: CreateDoctorProfileInput = createDoctorProfileSchema.parse(req.body);
     const created = await doctorsService.createDoctorProfileForUser(req.user.userId, input);
     formattedResponse(res, 201, created, "Doctor profile created successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Update own doctor profile.
+ * @route PUT /api/v1/doctors/me
+ * @access Doctor (cookie JWT)
+ */
+export const updateMyDoctorProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input = updateMyDoctorProfileSchema.parse(req.body);
+    const result = await doctorsService.updateMyDoctorProfile(req.user.userId, input);
+    formattedResponse(res, 200, result, "Doctor profile updated successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Update own doctor profile image.
+ * @route PUT /api/v1/doctors/me/image
+ * @access Doctor (cookie JWT)
+ */
+export const updateMyDoctorImage = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input = updateMyDoctorImageSchema.parse(req.body);
+    const updated = await doctorsService.updateMyDoctorImage(req.user.userId, input);
+    formattedResponse(res, 200, updated, "Doctor profile image updated successfully");
   } catch (error) {
     if (error instanceof ZodError) {
       throw new AppError("Validation failed", 400, {

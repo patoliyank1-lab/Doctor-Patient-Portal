@@ -6,6 +6,8 @@ import {
   listDoctors,
   listPendingDoctors,
   updateDoctorStatus,
+  updateMyDoctorImage,
+  updateMyDoctorProfile,
 } from "./doctors.controller";
 import { authenticate } from "../../middlewares/authenticate";
 import { authorize } from "../../middlewares/authorize";
@@ -20,6 +22,8 @@ router.put("/:id/status", authenticate, authorize(Role.ADMIN), updateDoctorStatu
 // Doctor self-profile routes
 router.get("/me", authenticate, authorize(Role.DOCTOR), getMyDoctorProfile);
 router.post("/me", authenticate, authorize(Role.DOCTOR), createMyDoctorProfile);
+router.put("/me", authenticate, authorize(Role.DOCTOR), updateMyDoctorProfile);
+router.put("/me/image", authenticate, authorize(Role.DOCTOR), updateMyDoctorImage);
 
 // Public routes
 router.get("/", listDoctors);
