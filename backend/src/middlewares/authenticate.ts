@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_COOKIE_NAME } from "../utils/ApiResponse";
 import { AppError, UnknownError } from "../utils/errorHandler";
 import { verifyToken } from "../utils/token";
+import { prisma } from "../config/database";
 
 /**
  * authenticate user for all service  
@@ -29,6 +30,15 @@ export const authenticate = async (
       typeof (payload as any).email !== "string" ||
       typeof (payload as any).role !== "string"
     ) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    // Reject requests from deactivated/soft-deleted users
+    const user = await prisma.user.findUnique({
+      where: { id: (payload as any).userId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+    if (!user || !user.isActive || user.deletedAt) {
       throw new AppError("Unauthorized", 401);
     }
 

@@ -183,3 +183,19 @@ export const updateMyDoctorImage = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @description Deactivate doctor account (soft delete).
+ * @route PUT /api/v1/doctors/me/deactivate
+ * @access Doctor (cookie JWT)
+ */
+export const deactivateMyDoctorAccount = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    await doctorsService.deactivateMyDoctorAccount(req.user.userId);
+    formattedResponse(res, 200, null, "Account deactivated successfully");
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
