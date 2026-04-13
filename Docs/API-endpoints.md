@@ -106,18 +106,44 @@ c
 
 ---
 
-## 5. Appointment Endpoints
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `POST` | `/appointments` | Patient | Book appointment |
-| `GET` | `/appointments/my` | Patient / Doctor | Get own appointments |
-| `GET` | `/appointments/:id` | Auth | Get single appointment detail |
-| `PUT` | `/appointments/:id/cancel` | Patient | Cancel own appointment |
-| `PUT` | `/appointments/:id/approve` | Doctor | Approve appointment |
-| `PUT` | `/appointments/:id/reject` | Doctor | Reject with reason |
-| `PUT` | `/appointments/:id/complete` | Doctor | Mark as completed |
-| `PUT` | `/appointments/:id/notes` | Doctor | Add doctor notes |
-| `GET` | `/appointments` | Admin | List all appointments |
+# 📅 5. Appointment Endpoints (Final Updated)
+
+---
+
+## 👤 Patient Actions
+
+| Method | Endpoint                       | Access  | Description            |
+| ------ | ------------------------------ | ------- | ---------------------- |
+| `POST` | `/appointments`                | Patient | Book appointment       |
+| `GET`  | `/appointments/my`             | Patient | Get own appointments   |
+| `PUT`  | `/appointments/:id/cancel`     | Patient | Cancel appointment     |
+| `PUT`  | `/appointments/:id/reschedule` | Patient | Reschedule appointment |
+
+---
+
+## 👨‍⚕️ Doctor Actions
+
+| Method | Endpoint                   | Access | Description                             |
+| ------ | -------------------------- | ------ | --------------------------------------- |
+| `GET`  | `/appointments/my`         | Doctor | Get doctor appointments                 |
+| `PUT`  | `/appointments/:id/status` | Doctor | Update status (approve/reject/complete) |
+| `PUT`  | `/appointments/:id/notes`  | Doctor | Add/update doctor notes                 |
+
+---
+
+## 🔐 Shared / General
+
+| Method | Endpoint            | Access | Description                   |
+| ------ | ------------------- | ------ | ----------------------------- |
+| `GET`  | `/appointments/:id` | Auth   | Get single appointment detail |
+
+---
+
+## 🛡️ Admin Actions
+
+| Method | Endpoint        | Access | Description           |
+| ------ | --------------- | ------ | --------------------- |
+| `GET`  | `/appointments` | Admin  | List all appointments |
 
 ---
 

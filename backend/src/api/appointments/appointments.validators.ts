@@ -1,0 +1,67 @@
+import { z } from "zod";
+
+const uuidRegex =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
+
+export const createAppointmentSchema = z.object({
+  slotId: z.string().regex(uuidRegex, "Invalid slotId"),
+});
+
+export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
+
+export const appointmentIdParamSchema = z.object({
+  id: z.string().regex(uuidRegex, "Invalid appointment id"),
+});
+
+export const cancelAppointmentSchema = z.object({
+  cancelReason: z.string().trim().min(1).max(500).optional(),
+});
+
+export type CancelAppointmentInput = z.infer<typeof cancelAppointmentSchema>;
+
+export const rescheduleAppointmentSchema = z.object({
+  newSlotId: z.string().regex(uuidRegex, "Invalid newSlotId"),
+});
+
+export type RescheduleAppointmentInput = z.infer<typeof rescheduleAppointmentSchema>;
+
+export const updateAppointmentStatusSchema = z
+  .object({
+    status: z.enum(["approved", "rejected", "completed"]),
+    rejectionReason: z.string().trim().min(1).max(500).optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.status === "rejected" && !val.rejectionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "rejectionReason is required when status is rejected",
+      });
+    }
+  });
+
+export type UpdateAppointmentStatusInput = z.infer<typeof updateAppointmentStatusSchema>;
+
+export const myAppointmentsQuerySchema = z.object({
+  page: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === undefined ? 1 : Number(v)))
+    .pipe(z.number().int().min(1))
+    .default(1),
+  limit: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === undefined ? 10 : Number(v)))
+    .pipe(z.number().int().min(1).max(100))
+    .default(10),
+  status: z
+    .enum(["pending", "approved", "rejected", "completed", "cancelled"])
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : undefined)),
+  date: z.string().regex(dateRegex, "date must be in YYYY-MM-DD format").optional(),
+});
+
+export type MyAppointmentsQuery = z.infer<typeof myAppointmentsQuerySchema>;
+
