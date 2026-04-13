@@ -7,6 +7,7 @@ import type {
   CreateAppointmentInput,
   MyAppointmentsQuery,
   RescheduleAppointmentInput,
+  UpdateAppointmentStatusInput,
 } from "./appointments.validators";
 
 const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd); // JS treats YYYY-MM-DD as UTC midnight
@@ -40,6 +41,15 @@ const findPatientIdByUserId = async (userId: string) => {
   return patient.id;
 };
 
+const findDoctorIdByUserId = async (userId: string) => {
+  const doctor = await prisma.doctor.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (!doctor) throw new AppError("Doctor profile not found", 404);
+  return doctor.id;
+};
+
 const appointmentSelect = {
   id: true,
   status: true,
@@ -61,6 +71,32 @@ const appointmentSelect = {
       specializations: true,
       profileImageUrl: true,
       consultationFee: true,
+    },
+  },
+} as const;
+
+const doctorAppointmentSelect = {
+  id: true,
+  status: true,
+  scheduledAt: true,
+  createdAt: true,
+  rejectionReason: true,
+  slot: {
+    select: {
+      id: true,
+      date: true,
+      startTime: true,
+      endTime: true,
+    },
+  },
+  patient: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      gender: true,
+      phone: true,
+      dateOfBirth: true,
     },
   },
 } as const;
@@ -186,6 +222,132 @@ export const listMyAppointments = async (
       appointments: appointments as any,
       pagination: { total, page: query.page, limit: query.limit, totalPages },
     };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const listMyAppointmentsForDoctor = async (
+  userId: string,
+  query: MyAppointmentsQuery,
+): Promise<{
+  appointments: Array<{
+    id: string;
+    status: AppointmentStatus;
+    scheduledAt: Date;
+    createdAt: Date;
+    rejectionReason: string | null;
+    slot: { id: string; date: Date; startTime: Date; endTime: Date };
+    patient: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      gender: any;
+      phone: string | null;
+      dateOfBirth: Date | null;
+    };
+  }>;
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    const where: any = { doctorId, deletedAt: null };
+    if (query.status) where.status = query.status;
+    if (query.date) {
+      where.scheduledAt = { gte: dateOnly(query.date), lt: startOfNextDayUtc(query.date) };
+    }
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, appointments] = await Promise.all([
+      prisma.appointment.count({ where }),
+      prisma.appointment.findMany({
+        where,
+        skip,
+        take,
+        select: doctorAppointmentSelect,
+        orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    return {
+      appointments: appointments as any,
+      pagination: { total, page: query.page, limit: query.limit, totalPages },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const updateAppointmentStatusForDoctor = async (
+  userId: string,
+  appointmentId: string,
+  input: UpdateAppointmentStatusInput,
+): Promise<{
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: Date;
+  createdAt: Date;
+  rejectionReason: string | null;
+  slot: { id: string; date: Date; startTime: Date; endTime: Date };
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    gender: any;
+    phone: string | null;
+    dateOfBirth: Date | null;
+  };
+}> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    const statusMap: Record<UpdateAppointmentStatusInput["status"], AppointmentStatus> = {
+      approved: AppointmentStatus.APPROVED,
+      rejected: AppointmentStatus.REJECTED,
+      completed: AppointmentStatus.COMPLETED,
+    };
+    const targetStatus = statusMap[input.status];
+
+    return await prisma.$transaction(async (tx) => {
+      const appt = await tx.appointment.findFirst({
+        where: { id: appointmentId, doctorId, deletedAt: null },
+        select: { id: true, status: true },
+      });
+      if (!appt) throw new AppError("Appointment not found", 404);
+
+      if (appt.status === AppointmentStatus.CANCELLED) {
+        throw new AppError("Cancelled appointments cannot be updated", 409);
+      }
+      if (appt.status === AppointmentStatus.COMPLETED) {
+        throw new AppError("Completed appointments cannot be updated", 409);
+      }
+
+      const isValidTransition =
+        (appt.status === AppointmentStatus.PENDING &&
+          (targetStatus === AppointmentStatus.APPROVED || targetStatus === AppointmentStatus.REJECTED)) ||
+        (appt.status === AppointmentStatus.APPROVED && targetStatus === AppointmentStatus.COMPLETED);
+
+      if (!isValidTransition) {
+        throw new AppError("Invalid appointment status transition", 409);
+      }
+
+      const updated = await tx.appointment.update({
+        where: { id: appt.id },
+        data: {
+          status: targetStatus,
+          rejectionReason: targetStatus === AppointmentStatus.REJECTED ? input.rejectionReason : null,
+        },
+        select: doctorAppointmentSelect,
+      });
+
+      return updated as any;
+    });
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

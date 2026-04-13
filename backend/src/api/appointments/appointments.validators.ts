@@ -27,6 +27,22 @@ export const rescheduleAppointmentSchema = z.object({
 
 export type RescheduleAppointmentInput = z.infer<typeof rescheduleAppointmentSchema>;
 
+export const updateAppointmentStatusSchema = z
+  .object({
+    status: z.enum(["approved", "rejected", "completed"]),
+    rejectionReason: z.string().trim().min(1).max(500).optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.status === "rejected" && !val.rejectionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "rejectionReason is required when status is rejected",
+      });
+    }
+  });
+
+export type UpdateAppointmentStatusInput = z.infer<typeof updateAppointmentStatusSchema>;
+
 export const myAppointmentsQuerySchema = z.object({
   page: z
     .union([z.string(), z.number()])
