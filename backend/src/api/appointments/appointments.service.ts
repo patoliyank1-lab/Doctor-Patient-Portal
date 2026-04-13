@@ -1,5 +1,5 @@
 import { Prisma } from "../../../prisma/generated/client/client";
-import { AppointmentStatus } from "../../../prisma/generated/client/enums";
+import { AppointmentStatus, Role } from "../../../prisma/generated/client/enums";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import type {
@@ -97,6 +97,52 @@ const doctorAppointmentSelect = {
       gender: true,
       phone: true,
       dateOfBirth: true,
+    },
+  },
+} as const;
+
+const appointmentDetailSelect = {
+  id: true,
+  status: true,
+  scheduledAt: true,
+  reason: true,
+  doctorNotes: true,
+  rejectionReason: true,
+  createdAt: true,
+  updatedAt: true,
+  slot: {
+    select: {
+      id: true,
+      date: true,
+      startTime: true,
+      endTime: true,
+      doctorId: true,
+      isBooked: true,
+    },
+  },
+  doctor: {
+    select: {
+      id: true,
+      userId: true,
+      firstName: true,
+      lastName: true,
+      specializations: true,
+      profileImageUrl: true,
+      consultationFee: true,
+      approvalStatus: true,
+    },
+  },
+  patient: {
+    select: {
+      id: true,
+      userId: true,
+      firstName: true,
+      lastName: true,
+      gender: true,
+      phone: true,
+      dateOfBirth: true,
+      bloodGroup: true,
+      profileImageUrl: true,
     },
   },
 } as const;
@@ -222,6 +268,75 @@ export const listMyAppointments = async (
       appointments: appointments as any,
       pagination: { total, page: query.page, limit: query.limit, totalPages },
     };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const getAppointmentDetail = async (
+  userId: string,
+  role: Role,
+  appointmentId: string,
+): Promise<{
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: Date;
+  reason: string | null;
+  doctorNotes: string | null;
+  rejectionReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  slot: {
+    id: string;
+    date: Date;
+    startTime: Date;
+    endTime: Date;
+    doctorId: string;
+    isBooked: boolean;
+  };
+  doctor: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    specializations: string[];
+    profileImageUrl: string | null;
+    consultationFee: any;
+    approvalStatus: any;
+  };
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    gender: any;
+    phone: string | null;
+    dateOfBirth: Date | null;
+    bloodGroup: string | null;
+    profileImageUrl: string | null;
+  };
+}> => {
+  try {
+    const appt = await prisma.appointment.findFirst({
+      where: { id: appointmentId, deletedAt: null },
+      select: appointmentDetailSelect,
+    });
+    if (!appt) throw new AppError("Appointment not found", 404);
+
+    if (role === Role.ADMIN) return appt as any;
+
+    if (role === Role.PATIENT) {
+      if (appt.patient.userId !== userId) throw new AppError("Forbidden", 403);
+      return appt as any;
+    }
+
+    if (role === Role.DOCTOR) {
+      if (appt.doctor.userId !== userId) throw new AppError("Forbidden", 403);
+      return appt as any;
+    }
+
+    throw new AppError("Unauthorized", 401);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

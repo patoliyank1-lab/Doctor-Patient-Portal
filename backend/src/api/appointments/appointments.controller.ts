@@ -61,6 +61,28 @@ export const getMyAppointments = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @description Get appointment details with role-based access control
+ * @route GET /api/v1/appointments/:id
+ * @access Patient/Doctor/Admin (cookie JWT)
+ */
+export const getAppointmentById = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId || !req.user?.role) throw new AppError("Unauthorized", 401);
+    const { id } = appointmentIdParamSchema.parse(req.params);
+    const result = await appointmentsService.getAppointmentDetail(req.user.userId, req.user.role, id);
+    formattedResponse(res, 200, result, "Appointment fetched successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
  * @description Update appointment status for authenticated doctor
  * @route PUT /api/v1/appointments/:id/status
  * @access Doctor (cookie JWT)
