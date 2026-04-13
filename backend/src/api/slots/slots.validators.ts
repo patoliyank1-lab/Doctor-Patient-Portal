@@ -70,3 +70,44 @@ export const slotIdParamSchema = z.object({
 export const updateSlotSchema = slotInputSchema;
 export type UpdateSlotInput = z.infer<typeof updateSlotSchema>;
 
+export const doctorIdParamSchema = z.object({
+  doctorId: z.string().regex(uuidRegex, "Invalid doctorId"),
+});
+
+export const doctorSlotsQuerySchema = z
+  .object({
+    page: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => (v === undefined ? 1 : Number(v)))
+      .pipe(z.number().int().min(1))
+      .default(1),
+    limit: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => (v === undefined ? 10 : Number(v)))
+      .pipe(z.number().int().min(1).max(100))
+      .default(10),
+    date: z.string().regex(dateRegex, "date must be in YYYY-MM-DD format").optional(),
+    startTime: z.string().regex(timeRegex, "startTime must be in HH:mm format").optional(),
+    endTime: z.string().regex(timeRegex, "endTime must be in HH:mm format").optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.startTime && val.endTime) {
+      const toMinutes = (t: string) => {
+        const [hRaw, mRaw] = t.split(":");
+        const h = Number(hRaw ?? NaN);
+        const m = Number(mRaw ?? NaN);
+        return h * 60 + m;
+      };
+      if (toMinutes(val.startTime) >= toMinutes(val.endTime)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "startTime must be earlier than endTime",
+        });
+      }
+    }
+  });
+
+export type DoctorSlotsQuery = z.infer<typeof doctorSlotsQuerySchema>;
+

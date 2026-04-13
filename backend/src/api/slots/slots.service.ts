@@ -1,7 +1,7 @@
 import { Prisma } from "../../../prisma/generated/client/client";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { MySlotsQuery, SlotInput } from "./slots.validators";
+import type { DoctorSlotsQuery, MySlotsQuery, SlotInput } from "./slots.validators";
 
 type SlotRow = {
   id: string;
@@ -23,6 +23,13 @@ const slotSelect = {
   isBooked: true,
   createdAt: true,
   updatedAt: true,
+} as const;
+
+const publicSlotSelect = {
+  id: true,
+  date: true,
+  startTime: true,
+  endTime: true,
 } as const;
 
 const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd); // JS treats YYYY-MM-DD as UTC midnight
@@ -88,6 +95,50 @@ const findDoctorIdByUserId = async (userId: string) => {
   });
   if (!doctor) throw new AppError("Doctor profile not found", 404);
   return doctor.id;
+};
+
+export const listAvailableSlotsForDoctor = async (
+  doctorId: string,
+  query: DoctorSlotsQuery,
+): Promise<{
+  slots: Array<{ id: string; date: Date; startTime: Date; endTime: Date }>;
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}> => {
+  try {
+    const doctorExists = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: { id: true },
+    });
+    if (!doctorExists) throw new AppError("Doctor not found", 404);
+
+    const where: any = { doctorId, isBooked: false };
+    if (query.date) where.date = dateOnly(query.date);
+    if (query.startTime) where.startTime = { gte: timeOnly(query.startTime) };
+    if (query.endTime) where.endTime = { lte: timeOnly(query.endTime) };
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, slots] = await Promise.all([
+      prisma.availabilitySlot.count({ where }),
+      prisma.availabilitySlot.findMany({
+        where,
+        skip,
+        take,
+        select: publicSlotSelect,
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    return {
+      slots: slots as Array<{ id: string; date: Date; startTime: Date; endTime: Date }>,
+      pagination: { total, page: query.page, limit: query.limit, totalPages },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
 };
 
 export const listMySlots = async (

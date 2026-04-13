@@ -5,6 +5,8 @@ import { ZodError } from "zod";
 import * as slotsService from "./slots.service";
 import {
   bulkSlotInputSchema,
+  doctorIdParamSchema,
+  doctorSlotsQuerySchema,
   mySlotsQuerySchema,
   slotIdParamSchema,
   slotInputSchema,
@@ -111,6 +113,28 @@ export const deleteSlot = asyncHandler(async (req, res) => {
     const { id } = slotIdParamSchema.parse(req.params);
     await slotsService.deleteSlotForDoctor(req.user.userId, id);
     formattedResponse(res, 200, null, "Slot deleted successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Get available slots for a doctor (patient-facing).
+ * @route GET /api/v1/slots/doctor/:doctorId
+ * @access Authenticated users (cookie JWT)
+ */
+export const getDoctorAvailableSlots = asyncHandler(async (req, res) => {
+  try {
+    const { doctorId } = doctorIdParamSchema.parse(req.params);
+    const query = doctorSlotsQuerySchema.parse(req.query);
+    const result = await slotsService.listAvailableSlotsForDoctor(doctorId, query);
+    formattedResponse(res, 200, result, "Available slots fetched successfully");
   } catch (error) {
     if (error instanceof ZodError) {
       throw new AppError("Validation failed", 400, {
