@@ -1,4 +1,4 @@
-import { clearAuthCookies, formattedError, formattedResponse, setAuthCookies } from "../../utils/ApiResponse";
+import { clearAuthCookies, formattedError, formattedResponse, REFRESH_TOKEN_COOKIE_NAME, setAccessTokenCookie, setAuthCookies } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import * as authService from "./auth.service";
@@ -160,6 +160,27 @@ export const me = asyncHandler(async (req, res) => {
     if (!req.user?.userId) throw new AppError("Unauthorized", 401);
     const user = await authService.getCurrentUser(req.user.userId);
     formattedResponse(res, 200, user, "Current user fetched successfully");
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Refresh access token using refresh token cookie.
+ * @route POST /api/auth/refresh-token
+ * @access Public (cookie-based)
+ */
+export const refreshToken = asyncHandler(async (req, res) => {
+  try {
+    const token = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+    if (!token || typeof token !== "string") {
+      throw new AppError("Unauthorized", 401, { errors: ["Missing refresh token"] });
+    }
+
+    const { accessToken } = await authService.refreshAccessToken(token);
+    setAccessTokenCookie(res, accessToken);
+    formattedResponse(res, 200, null, "Access token refreshed");
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

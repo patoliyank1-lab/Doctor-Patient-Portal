@@ -48,6 +48,14 @@ export const setAuthCookies = (
   });
 };
 
+export const setAccessTokenCookie = (res: Response, accessToken: string) => {
+  const opts = defaultCookieOptions();
+  res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, {
+    ...opts,
+    maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+  });
+};
+
 export const clearAuthCookies = (res: Response) => {
   const opts = defaultCookieOptions();
   res.clearCookie(ACCESS_TOKEN_COOKIE_NAME, opts);
