@@ -2,7 +2,9 @@ import jwt from "jsonwebtoken";
 import type { JWTPayload } from "../types";
 import { lodVariable } from "./dotenv";
 
-const secret = lodVariable("JWT_SECRET");
+const secret: jwt.Secret = lodVariable("JWT_SECRET");
+const ACCESS_TOKEN_EXPIRES_IN: jwt.SignOptions["expiresIn"] = "15m";
+const REFRESH_TOKEN_EXPIRES_IN: jwt.SignOptions["expiresIn"] = "7d";
 
 /**
  * create new JWT token with deffult expires one week
@@ -11,23 +13,35 @@ const secret = lodVariable("JWT_SECRET");
  * @returns return new created JWT token.
  */
 export const createToken = (
-  { email, role, userId, doctorId, isApproved, patientId }: JWTPayload,
-  ex?: number,
+  pl: JWTPayload,
+  ex?: jwt.SignOptions["expiresIn"],
 ) => {
-  const payload: JWTPayload = {
-    userId,
-    email,
-    role,
-    doctorId,
-    isApproved,
-    patientId,
+  const payload: Record<string, unknown> = {
+    userId: pl.userId,
+    email: pl.email,
+    role: pl.role,
   };
 
+  if(pl.doctorId){
+    payload.doctorId = pl.doctorId;
+    payload.isApproved = pl.isApproved;
+  }
+
+  if(pl.patientId) payload.patientId = pl.patientId;
+
   const token = jwt.sign(payload, secret, {
-    expiresIn: ex ?? "1w", // Token expires in 1 week hour
+    expiresIn: ex ?? "1w",
   });
 
   return token;
+};
+
+export const createAccessToken = (pl: JWTPayload) => {
+  return createToken(pl, ACCESS_TOKEN_EXPIRES_IN);
+};
+
+export const createRefreshToken = (pl: JWTPayload) => {
+  return createToken(pl, REFRESH_TOKEN_EXPIRES_IN);
 };
 /**
  * verify JWT token 

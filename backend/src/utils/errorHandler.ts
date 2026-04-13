@@ -1,21 +1,22 @@
-export class UnknownError extends Error {
-  statusCode: number = 500;
-  constructor(error: any) {
-    super(error);
-    if(error.name === "ZodError"){
-this.message = error.errors
-    }
-    console.log(JSON.stringify(error));
-  }
-}
+export type AppErrorOptions = {
+  errors?: string[];
+  cause?: unknown;
+};
 
 export class AppError extends Error {
   statusCode: number;
-  constructor(message: string, statusCode: number) {
-    super(message);
+  errors?: string[];
 
+  constructor(message: string, statusCode: number, options?: AppErrorOptions) {
+    super(message, { cause: options?.cause as any });
     this.statusCode = statusCode;
-
+    this.errors = options?.errors;
     Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class UnknownError extends AppError {
+  constructor(error: unknown) {
+    super("Something went wrong!", 500, { cause: error });
   }
 }
