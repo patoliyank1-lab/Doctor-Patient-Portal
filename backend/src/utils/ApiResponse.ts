@@ -1,44 +1,87 @@
-import { type Response } from "express";
-const ONE_HOUR = 60 * 60 * 1000;
+import type { CookieOptions, Response } from "express";
 
-/**
- * send formatted Response
- * @param req express Request
- * @param res express Response
- * @param data data which is send to be user.
- * @param status - optional - status code by default 200.
- * @param accessToken - optional - access Token.
- * @param refreshToken - optional - refresh Token.
- */
-export const formattedResponse = (
+export type ApiSuccessResponse<TData> = {
+  success: true;
+  message: string;
+  data: TData;
+  errors: null;
+};
+
+export type ApiErrorResponse = {
+  success: false;
+  message: string;
+  data: null;
+  errors: string[] | null;
+};
+
+export type ApiResponse<TData> = ApiSuccessResponse<TData> | ApiErrorResponse;
+
+const ONE_MINUTE_MS = 60 * 1000;
+const ACCESS_TOKEN_MAX_AGE_MS = 15 * ONE_MINUTE_MS;
+const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * ONE_MINUTE_MS;
+
+export const ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+export const REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+
+const defaultCookieOptions = (): CookieOptions => {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "strict" : "lax",
+    path: "/",
+  };
+};
+
+export const setAuthCookies = (
   res: Response,
-  status: number = 200,
-  data?: unknown,
-  message?: string,
-  accessToken?: string,
-  refreshToken?: string,
+  tokens: { accessToken: string; refreshToken: string },
 ) => {
-  const response: Record<string, unknown> = { success: true, status };
+  const opts = defaultCookieOptions();
+  res.cookie(ACCESS_TOKEN_COOKIE_NAME, tokens.accessToken, {
+    ...opts,
+    maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+  });
+  res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, {
+    ...opts,
+    maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+  });
+};
 
-  if (data) response.data = data;
-  if (message) response.message = message;
+export const clearAuthCookies = (res: Response) => {
+  const opts = defaultCookieOptions();
+  res.clearCookie(ACCESS_TOKEN_COOKIE_NAME, opts);
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, opts);
+};
 
-  if (accessToken) {
-    res.cookie("access-token", accessToken, {
-      maxAge: ONE_HOUR,
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-    });
-  }
-  if (refreshToken) {
-    res.cookie("refresh-token", refreshToken, {
-      maxAge: 24 * ONE_HOUR,
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-    });
-  }
+export const formattedResponse = <TData>(
+  res: Response,
+  status: number,
+  data: TData,
+  message: string,
+  tokens?: { accessToken: string; refreshToken: string },
+) => {
+  if (tokens) setAuthCookies(res, tokens);
+  const body: ApiSuccessResponse<TData> = {
+    success: true,
+    message,
+    data,
+    errors: null,
+  };
+  return res.status(status).json(body);
+};
 
-  return res.status(status).json(response);
+export const formattedError = (
+  res: Response,
+  status: number,
+  message: string,
+  errors: string[] | null = null,
+) => {
+  const body: ApiErrorResponse = {
+    success: false,
+    message,
+    data: null,
+    errors,
+  };
+  return res.status(status).json(body);
 };

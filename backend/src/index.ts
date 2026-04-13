@@ -13,7 +13,7 @@ app.set("trust proxy", true);
 
 app.use(winLogger);
 
-app.use("/api", Router);
+app.use("/api/v1", Router);
 
 app.get("/", (req, res) => {
   res.send("Welcome to typescript backend!");
