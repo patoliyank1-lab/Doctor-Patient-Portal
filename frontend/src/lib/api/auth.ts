@@ -12,7 +12,8 @@ export interface RegisterPayload {
   phone: string;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
-  role: "patient" | "doctor";
+  // Backend uses the Prisma Role enum → must be uppercase
+  role: "PATIENT" | "DOCTOR" | "ADMIN";
 }
 
 export interface LoginPayload {

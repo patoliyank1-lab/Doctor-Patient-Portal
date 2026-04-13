@@ -13,7 +13,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface JwtPayload {
-  id: string;
+  userId: string; // matches backend token.ts: payload.userId
   role: string;
   exp: number;
 }
@@ -47,7 +47,9 @@ export function middleware(request: NextRequest) {
   const isAuthenticated =
     payload !== null && payload.exp * 1000 > Date.now();
 
-  const role = isAuthenticated ? payload!.role : null;
+  // JWT role is uppercase (Prisma enum: "PATIENT", "DOCTOR", "ADMIN")
+  // ROLE_DASHBOARD / ROLE_PREFIX_MAP use lowercase keys — normalise here.
+  const role = isAuthenticated ? payload!.role.toLowerCase() : null;
 
   // ── Protected routes (/patient, /doctor, /admin) ─────────────────────────
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>

@@ -205,10 +205,21 @@ export interface ApiError {
 }
 
 // ── Auth Response ─────────────────────────────────────────────────────────────
+// The backend always wraps responses in this envelope:
+//   { success: true, message: string, data: T, errors: null }
+// For login, data contains { id, email, role }.
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: UserRole;
+}
 
 export interface AuthResponse {
-  user: User;
+  success: boolean;
   message: string;
+  data: AuthUser;
+  errors: string[] | null;
 }
 
 // ── Upload ────────────────────────────────────────────────────────────────────

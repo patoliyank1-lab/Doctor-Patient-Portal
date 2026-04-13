@@ -1,13 +1,16 @@
 import { create } from "zustand";
-import type { User } from "@/types";
+import type { AuthUser } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // State shape
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AuthState {
-  /** The currently logged-in user, or null if unauthenticated. */
-  user: User | null;
+  /**
+   * The minimal user object returned from login (id, email, role).
+   * Can be hydrated to a full profile via GET /auth/me later.
+   */
+  user: AuthUser | null;
 
   /**
    * True while the initial auth check (GET /auth/me) is in flight.
@@ -26,7 +29,7 @@ interface AuthActions {
    * Set the logged-in user.
    * Called after a successful login or after /auth/me returns a user.
    */
-  setUser: (user: User) => void;
+  setUser: (user: AuthUser) => void;
 
   /**
    * Clear the logged-in user.

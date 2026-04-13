@@ -59,6 +59,7 @@ export const ROUTES = {
   ABOUT:                "/about",
   DOCTORS:              "/doctors",
   DOCTOR_PUBLIC_PROFILE: (id: string) => `/doctors/${id}`,
+  PUBLIC_DOCTOR:         (id: string) => `/doctors/${id}`,
 
   // ── Auth
   LOGIN:           "/auth/login",
@@ -109,16 +110,17 @@ export const ROLE_DASHBOARD: Record<string, string> = {
 // ── Middleware route matching ──────────────────────────────────────────────────
 
 /** Routes that require authentication AND role matching */
-export const PROTECTED_PREFIXES = ["/patient", "/doctor", "/admin"] as const;
+// NOTE: trailing slash is critical — prevents "/doctor" from matching "/doctors/*" public pages
+export const PROTECTED_PREFIXES = ["/patient/", "/doctor/", "/admin/"] as const;
 
 /** Routes only accessible when NOT authenticated */
 export const AUTH_PREFIXES = ["/auth"] as const;
 
-/** Role to its allowed route prefix */
+/** Role to its allowed route prefix (trailing slash required — see PROTECTED_PREFIXES) */
 export const ROLE_PREFIX_MAP: Record<string, string> = {
-  patient: "/patient",
-  doctor:  "/doctor",
-  admin:   "/admin",
+  patient: "/patient/",
+  doctor:  "/doctor/",
+  admin:   "/admin/",
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -175,4 +177,24 @@ export const RECORD_TYPE_OPTIONS = [
   { value: "lab_report",   label: "Lab Report"   },
   { value: "imaging",      label: "Imaging"      },
   { value: "other",        label: "Other"        },
+] as const;
+
+// ── Specializations ───────────────────────────────────────────────────────────
+
+export const SPECIALIZATIONS = [
+  "Cardiology",
+  "Dermatology",
+  "Endocrinology",
+  "Gastroenterology",
+  "General Medicine",
+  "Gynaecology",
+  "Neurology",
+  "Oncology",
+  "Ophthalmology",
+  "Orthopaedics",
+  "Paediatrics",
+  "Psychiatry",
+  "Pulmonology",
+  "Radiology",
+  "Urology",
 ] as const;
