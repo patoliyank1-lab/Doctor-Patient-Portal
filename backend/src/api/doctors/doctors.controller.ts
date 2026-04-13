@@ -5,8 +5,10 @@ import { ZodError } from "zod";
 import * as doctorsService from "./doctors.service";
 import {
   doctorIdParamSchema,
+  createDoctorProfileSchema,
   listDoctorsQuerySchema,
   pendingDoctorsQuerySchema,
+  type CreateDoctorProfileInput,
   updateDoctorStatusBodySchema,
 } from "./doctors.validators";
 
@@ -86,6 +88,44 @@ export const updateDoctorStatus = asyncHandler(async (req, res) => {
 
     const updated = await doctorsService.updateDoctorStatus(req.user.userId, id, body);
     formattedResponse(res, 200, updated, "Doctor status updated successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Get own doctor profile.
+ * @route GET /api/v1/doctors/me
+ * @access Doctor (cookie JWT)
+ */
+export const getMyDoctorProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const doctor = await doctorsService.getDoctorProfileByUserId(req.user.userId);
+    formattedResponse(res, 200, doctor, "Doctor profile fetched successfully");
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Create own doctor profile.
+ * @route POST /api/v1/doctors/me
+ * @access Doctor (cookie JWT)
+ */
+export const createMyDoctorProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input: CreateDoctorProfileInput = createDoctorProfileSchema.parse(req.body);
+    const created = await doctorsService.createDoctorProfileForUser(req.user.userId, input);
+    formattedResponse(res, 201, created, "Doctor profile created successfully");
   } catch (error) {
     if (error instanceof ZodError) {
       throw new AppError("Validation failed", 400, {
