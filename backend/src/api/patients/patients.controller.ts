@@ -8,6 +8,10 @@ import {
   listPatientsQuerySchema,
   patientIdParamSchema,
   type CreatePatientProfileInput,
+  updateMyPatientImageSchema,
+  updateMyPatientProfileSchema,
+  type UpdateMyPatientImageInput,
+  type UpdateMyPatientProfileInput,
 } from "./patients.validators";
 
 /**
@@ -96,6 +100,66 @@ export const createMyPatientProfile = asyncHandler(async (req, res) => {
         errors: error.issues.map((i) => i.message),
       });
     }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Update own patient profile (partial update).
+ * @route PUT /api/v1/patients/me
+ * @access Patient (cookie JWT)
+ */
+export const updateMyPatientProfile = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input: UpdateMyPatientProfileInput = updateMyPatientProfileSchema.parse(req.body);
+    const updated = await patientsService.updateMyPatientProfile(req.user.userId, input);
+    formattedResponse(res, 200, updated, "Patient profile updated successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Update own patient profile image.
+ * @route PUT /api/v1/patients/me/image
+ * @access Patient (cookie JWT)
+ */
+export const updateMyPatientImage = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const input: UpdateMyPatientImageInput = updateMyPatientImageSchema.parse(req.body);
+    const updated = await patientsService.updateMyPatientImage(req.user.userId, input);
+    formattedResponse(res, 200, updated, "Patient profile image updated successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Deactivate patient account (soft delete).
+ * @route PUT /api/v1/patients/me/deactivate
+ * @access Patient (cookie JWT)
+ */
+export const deactivateMyPatientAccount = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    await patientsService.deactivateMyPatientAccount(req.user.userId);
+    formattedResponse(res, 200, null, "Account deactivated successfully");
+  } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }

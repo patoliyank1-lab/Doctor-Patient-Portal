@@ -74,3 +74,40 @@ export const createPatientProfileSchema = z.object({
 
 export type CreatePatientProfileInput = z.infer<typeof createPatientProfileSchema>;
 
+export const updateMyPatientProfileSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name cannot be empty").max(100, "First name is too long").optional(),
+    lastName: z.string().trim().min(1, "Last name cannot be empty").max(100, "Last name is too long").optional(),
+    dateOfBirth: z.any().optional().transform(dateFromString),
+    gender: z.nativeEnum(Gender).optional(),
+    phone: z.string().trim().min(1, "Phone cannot be empty").max(20, "Phone is too long").optional(),
+    address: z.string().trim().min(1, "Address cannot be empty").max(1000, "Address is too long").optional(),
+    bloodGroup: z.string().trim().min(1, "Blood group cannot be empty").max(5, "Blood group is too long").optional(),
+    profileImageUrl: z.string().trim().url("profileImageUrl must be a valid URL").optional(),
+  })
+  .superRefine((val, ctx) => {
+    const keys = Object.keys(val);
+    if (keys.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [],
+        message: "At least one field is required",
+      });
+    }
+    if (val.dateOfBirth instanceof Date && !Number.isFinite(val.dateOfBirth.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["dateOfBirth"],
+        message: "dateOfBirth must be a valid date",
+      });
+    }
+  });
+
+export type UpdateMyPatientProfileInput = z.infer<typeof updateMyPatientProfileSchema>;
+
+export const updateMyPatientImageSchema = z.object({
+  profileImageUrl: z.string().trim().url("profileImageUrl must be a valid URL"),
+});
+
+export type UpdateMyPatientImageInput = z.infer<typeof updateMyPatientImageSchema>;
+

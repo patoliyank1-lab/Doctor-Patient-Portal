@@ -1,6 +1,11 @@
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { CreatePatientProfileInput, ListPatientsQuery } from "./patients.validators";
+import type {
+  CreatePatientProfileInput,
+  ListPatientsQuery,
+  UpdateMyPatientImageInput,
+  UpdateMyPatientProfileInput,
+} from "./patients.validators";
 import { Role } from "../../../prisma/generated/client/enums";
 
 const patientListSelect = {
@@ -133,6 +138,77 @@ export const createPatientProfileForUser = async (userId: string, input: CreateP
     });
 
     return created;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const updateMyPatientProfile = async (userId: string, input: UpdateMyPatientProfileInput) => {
+  try {
+    const existing = await prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!existing) throw new AppError("Patient profile not found", 404);
+
+    const updated = await prisma.patient.update({
+      where: { userId },
+      data: {
+        ...input,
+      },
+      select: selfPatientSelect,
+    });
+
+    return updated;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const updateMyPatientImage = async (userId: string, input: UpdateMyPatientImageInput) => {
+  try {
+    const existing = await prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!existing) throw new AppError("Patient profile not found", 404);
+
+    const updated = await prisma.patient.update({
+      where: { userId },
+      data: { profileImageUrl: input.profileImageUrl },
+      select: selfPatientSelect,
+    });
+
+    return updated;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const deactivateMyPatientAccount = async (userId: string) => {
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!patient) throw new AppError("Patient profile not found", 404);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+    if (!user) throw new AppError("Unauthorized", 401);
+    if (!user.isActive || user.deletedAt) throw new AppError("Account already deactivated", 400);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, deletedAt: new Date() },
+    });
+
+    return null;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
