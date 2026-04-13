@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createMyDoctorProfile,
+  deactivateMyDoctorAccount,
   getDoctorById,
   getMyDoctorProfile,
   listDoctors,
@@ -24,6 +25,7 @@ router.get("/me", authenticate, authorize(Role.DOCTOR), getMyDoctorProfile);
 router.post("/me", authenticate, authorize(Role.DOCTOR), createMyDoctorProfile);
 router.put("/me", authenticate, authorize(Role.DOCTOR), updateMyDoctorProfile);
 router.put("/me/image", authenticate, authorize(Role.DOCTOR), updateMyDoctorImage);
+router.put("/me/deactivate", authenticate, authorize(Role.DOCTOR), deactivateMyDoctorAccount);
 
 // Public routes
 router.get("/", listDoctors);

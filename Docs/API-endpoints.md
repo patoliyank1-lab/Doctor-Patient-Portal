@@ -46,25 +46,41 @@ c
 
 ### 👨‍⚕️ Doctor Self Management
 
-| Method | Endpoint            | Access | Description           |
-| ------ | ------------------- | ------ | --------------------- |
-| `GET`  | `/doctors/me`       | Doctor | Get own profile       |
-| `POST` | `/doctors/me`       | Doctor | Create doctor profile |
-| `PUT`  | `/doctors/me`       | Doctor | Update own profile    |
-| `PUT`  | `/doctors/me/image` | Doctor | Update profile image  |
+| Method | Endpoint                 | Access | Description            |
+| ------ | ------------------------ | ------ | ---------------------- |
+| `GET`  | `/doctors/me`            | Doctor | Get own profile        |
+| `POST` | `/doctors/me`            | Doctor | Create doctor profile  |
+| `PUT`  | `/doctors/me`            | Doctor | Update own profile     |
+| `PUT`  | `/doctors/me/image`      | Doctor | Update profile image   |
+| `PUT`  | `/doctors/me/deactivate` | Doctor | Deactivate own account |
 
 
 
 ---
 
-## 3. Patient Endpoints
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `GET` | `/patients` | Admin | List all patients |
-| `GET` | `/patients/:id` | Admin / Doctor | Get patient profile |
-| `GET` | `/patients/profile` | Patient | Get own profile |
-| `PUT` | `/patients/profile` | Patient | Update own profile |
-| `PUT` | `/patients/profile/image` | Patient | Upload profile image |
+
+## 🧑‍⚕️ 2. Patient Endpoints
+
+### Admin / Doctor Access
+
+| Method | Endpoint        | Access         | Description         |
+| ------ | --------------- | -------------- | ------------------- |
+| `GET`  | `/patients`     | Admin          | List all patients   |
+| `GET`  | `/patients/:id` | Admin / Doctor | Get patient profile |
+
+---
+
+### 👤 Patient Self Management
+
+| Method | Endpoint                  | Access  | Description            |
+| ------ | ------------------------- | ------- | ---------------------- |
+| `GET`  | `/patients/me`            | Patient | Get own profile        |
+| `POST` | `/patients/me`            | Patient | Create patient profile |
+| `PUT`  | `/patients/me`            | Patient | Update own profile     |
+| `PUT`  | `/patients/me/image`      | Patient | Update profile image   |
+| `PUT`  | `/patients/me/deactivate` | Patient | Deactivate own account |
+
+
 
 ---
 

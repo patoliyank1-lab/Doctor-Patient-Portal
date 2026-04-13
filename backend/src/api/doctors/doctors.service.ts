@@ -34,6 +34,7 @@ export const listApprovedDoctors = async (query: ListDoctorsQuery) => {
   try {
     const where: any = {
       approvalStatus: DoctorApprovalStatus.APPROVED,
+      user: { isActive: true, deletedAt: null },
     };
 
     if (query.specialization) {
@@ -93,7 +94,11 @@ export const listApprovedDoctors = async (query: ListDoctorsQuery) => {
 export const getApprovedDoctorById = async (doctorId: string) => {
   try {
     const doctor = await prisma.doctor.findFirst({
-      where: { id: doctorId, approvalStatus: DoctorApprovalStatus.APPROVED },
+      where: {
+        id: doctorId,
+        approvalStatus: DoctorApprovalStatus.APPROVED,
+        user: { isActive: true, deletedAt: null },
+      },
       select: doctorDetailSelect,
     });
     if (!doctor) throw new AppError("Doctor not found", 404);
@@ -229,6 +234,33 @@ export const updateMyDoctorImage = async (userId: string, input: UpdateMyDoctorI
     });
 
     return updated;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const deactivateMyDoctorAccount = async (userId: string) => {
+  try {
+    const doctor = await prisma.doctor.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!doctor) throw new AppError("Doctor profile not found", 404);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true, deletedAt: true },
+    });
+    if (!user) throw new AppError("Unauthorized", 401);
+    if (!user.isActive || user.deletedAt) throw new AppError("Account already deactivated", 400);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, deletedAt: new Date() },
+    });
+
+    return null;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
