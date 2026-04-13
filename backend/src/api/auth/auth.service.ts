@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { createOneTimeToken, consumeOneTimeToken } from "../../utils/verificationToken";
 import { buildForgotPasswordTemplate, buildVerifyEmailTemplate, sendEmail } from "../../utils/email";
 import jwt from "jsonwebtoken";
+import { logAudit } from "../../utils/auditLog";
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync("invalid-password", 10);
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:3000";
@@ -23,6 +24,14 @@ export const register = async (user: UserType) => {
     user.passwordHash = await hashPassword(user.passwordHash);
 
     const newUser = await prisma.user.create({ data: user });
+
+    void logAudit({
+      userId: newUser.id,
+      action: "REGISTER",
+      entity: "user",
+      entityId: newUser.id,
+      newValue: { email: newUser.email, role: newUser.role },
+    });
 
     return {
       email: newUser.email,
@@ -62,6 +71,13 @@ export const login = async (email: string, password: string) => {
       userId: user.id,
       email: user.email,
       role: user.role,
+    });
+
+    void logAudit({
+      userId: user.id,
+      action: "LOGIN",
+      entity: "user",
+      entityId: user.id,
     });
 
     return {
@@ -122,6 +138,14 @@ export const verifyEmailToken = async (rawToken: string) => {
     await prisma.user.update({
       where: { id: user.id },
       data: { emailVerified: true },
+    });
+
+    void logAudit({
+      userId: user.id,
+      action: "EMAIL_VERIFY",
+      entity: "user",
+      entityId: user.id,
+      newValue: { emailVerified: true },
     });
 
     return { verified: true, email: user.email };
@@ -187,6 +211,13 @@ export const resetPassword = async (rawToken: string, newPassword: string) => {
     await prisma.user.update({
       where: { id: user.id },
       data: { passwordHash },
+    });
+
+    void logAudit({
+      userId: user.id,
+      action: "PASSWORD_RESET",
+      entity: "user",
+      entityId: user.id,
     });
 
     return { reset: true };

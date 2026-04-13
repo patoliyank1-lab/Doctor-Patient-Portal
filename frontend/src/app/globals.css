@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── shadcn/ui CSS Variable Tokens ──────────────────────────────────────────
+   Maps HSL values to semantic tokens consumed by Tailwind theme.
+   Light mode is the default; dark mode tokens are declared below.
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Core surfaces */
+    --background:   0 0% 100%;
+    --foreground:   222 47% 11%;
+
+    /* Card */
+    --card:         0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    /* Popover */
+    --popover:      0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary — MediConnect medical blue */
+    --primary:         217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — light blue-gray */
+    --secondary:       214 32% 91%;
+    --secondary-foreground: 222 47% 20%;
+
+    /* Muted — subtle backgrounds */
+    --muted:          214 32% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent */
+    --accent:         214 32% 91%;
+    --accent-foreground: 222 47% 20%;
+
+    /* Destructive — red */
+    --destructive:    0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border & input */
+    --border:         214 32% 91%;
+    --input:          214 32% 91%;
+    --ring:           217 91% 60%;
+
+    /* Border radius base */
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background:          222 47% 11%;
+    --sidebar-foreground:          214 32% 91%;
+    --sidebar-primary:             217 91% 65%;
+    --sidebar-primary-foreground:  0 0% 100%;
+    --sidebar-accent:              223 47% 18%;
+    --sidebar-accent-foreground:   214 32% 91%;
+    --sidebar-border:              223 47% 18%;
+    --sidebar-ring:                217 91% 65%;
+  }
+
+  /* ── Global resets ──────────────────────────────────────────────────────── */
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* ── Scrollbar styling ──────────────────────────────────────────────────── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* ── Focus ring ─────────────────────────────────────────────────────────── */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* ─── Utility Classes ──────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Typography helpers */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Page fade-in animation */
+  .animate-page-in {
+    animation: fade-in 0.2s ease-out;
+  }
+
+  /* Sidebar transition */
+  .sidebar-transition {
+    transition: width 0.25s ease, transform 0.25s ease;
+  }
+
+  /* Gradient text — used in hero/headings */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent;
+  }
+
+  /* Glass card */
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-card;
+  }
+
+  /* Full page loading overlay */
+  .page-loader {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm;
+  }
+
+  /* Hide scrollbar but keep scroll capability */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
