@@ -84,14 +84,25 @@ c
 
 ---
 
-## 4. Availability Slots Endpoints
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `POST` | `/slots` | Doctor | Create single slot |
-| `POST` | `/slots/bulk` | Doctor | Create multiple slots at once |
-| `GET` | `/slots/my` | Doctor | Get own slots |
-| `GET` | `/slots/:doctorId` | Patient | Get available slots for a doctor |
-| `DELETE` | `/slots/:id` | Doctor | Delete unbooked slot |
+## 🗓️ 4. Availability Slots Endpoints (Updated)
+
+### 👨‍⚕️ Doctor Actions
+
+| Method   | Endpoint      | Access | Description                      |
+| -------- | ------------- | ------ | -------------------------------- |
+| `POST`   | `/slots`      | Doctor | Create single slot               |
+| `POST`   | `/slots/bulk` | Doctor | Create multiple slots            |
+| `GET`    | `/slots/my`   | Doctor | Get own slots                    |
+| `PUT`    | `/slots/:id`  | Doctor | Update slot (time/date)          |
+| `DELETE` | `/slots/:id`  | Doctor | Delete slot (only if not booked) |
+
+---
+
+### 👤 Patient Access
+
+| Method | Endpoint                  | Access  | Description                      |
+| ------ | ------------------------- | ------- | -------------------------------- |
+| `GET`  | `/slots/doctor/:doctorId` | Patient | Get available slots for a doctor |
 
 ---
 
