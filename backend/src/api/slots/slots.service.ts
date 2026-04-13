@@ -1,7 +1,7 @@
 import { Prisma } from "../../../prisma/generated/client/client";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { SlotInput } from "./slots.validators";
+import type { MySlotsQuery, SlotInput } from "./slots.validators";
 
 type SlotRow = {
   id: string;
@@ -88,6 +88,54 @@ const findDoctorIdByUserId = async (userId: string) => {
   });
   if (!doctor) throw new AppError("Doctor profile not found", 404);
   return doctor.id;
+};
+
+export const listMySlots = async (
+  userId: string,
+  query: MySlotsQuery,
+): Promise<{
+  slots: SlotRow[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    // "cancelled" is not represented in current schema; return empty dataset.
+    if (query.status === "cancelled") {
+      return {
+        slots: [],
+        pagination: { total: 0, page: query.page, limit: query.limit, totalPages: 1 },
+      };
+    }
+
+    const where: any = { doctorId };
+    if (query.date) where.date = dateOnly(query.date);
+    if (query.status === "available") where.isBooked = false;
+    if (query.status === "booked") where.isBooked = true;
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, slots] = await Promise.all([
+      prisma.availabilitySlot.count({ where }),
+      prisma.availabilitySlot.findMany({
+        where,
+        skip,
+        take,
+        select: slotSelect,
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    return {
+      slots: slots as SlotRow[],
+      pagination: { total, page: query.page, limit: query.limit, totalPages },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
 };
 
 export const createSlotForDoctor = async (userId: string, input: SlotInput): Promise<SlotRow> => {
@@ -227,6 +275,52 @@ export const bulkCreateSlotsForDoctor = async (
         throw new AppError("Duplicate slot", 409);
       }
     }
+    throw new UnknownError(error);
+  }
+};
+
+export const updateSlotForDoctor = async (
+  userId: string,
+  slotId: string,
+  input: SlotInput,
+): Promise<SlotRow> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.availabilitySlot.findFirst({
+        where: { id: slotId, doctorId },
+        select: { id: true, isBooked: true },
+      });
+      if (!existing) throw new AppError("Slot not found", 404);
+      if (existing.isBooked) throw new AppError("Booked slots cannot be updated", 409);
+
+      const start = timeOnly(input.startTime);
+      const end = timeOnly(input.endTime);
+      const date = dateOnly(input.date);
+
+      const overlapping = await tx.availabilitySlot.findFirst({
+        where: {
+          doctorId,
+          date,
+          id: { not: slotId },
+          startTime: { lt: end },
+          endTime: { gt: start },
+        },
+        select: { id: true },
+      });
+      if (overlapping) throw new AppError("Slot overlaps with an existing slot", 409);
+
+      const updated = await tx.availabilitySlot.update({
+        where: { id: slotId },
+        data: { date, startTime: start, endTime: end },
+        select: slotSelect,
+      });
+
+      return updated as SlotRow;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
 };
