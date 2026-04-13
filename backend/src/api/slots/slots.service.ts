@@ -325,3 +325,24 @@ export const updateSlotForDoctor = async (
   }
 };
 
+export const deleteSlotForDoctor = async (userId: string, slotId: string): Promise<null> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.availabilitySlot.findFirst({
+        where: { id: slotId, doctorId },
+        select: { id: true, isBooked: true },
+      });
+      if (!existing) throw new AppError("Slot not found", 404);
+      if (existing.isBooked) throw new AppError("Booked slots cannot be deleted", 409);
+
+      await tx.availabilitySlot.delete({ where: { id: slotId } });
+      return null;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+

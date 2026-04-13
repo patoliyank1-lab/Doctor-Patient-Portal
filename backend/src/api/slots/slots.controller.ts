@@ -100,3 +100,25 @@ export const updateSlot = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @description Delete a specific slot for authenticated doctor.
+ * @route DELETE /api/v1/slots/:id
+ * @access Doctor (cookie JWT)
+ */
+export const deleteSlot = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const { id } = slotIdParamSchema.parse(req.params);
+    await slotsService.deleteSlotForDoctor(req.user.userId, id);
+    formattedResponse(res, 200, null, "Slot deleted successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
