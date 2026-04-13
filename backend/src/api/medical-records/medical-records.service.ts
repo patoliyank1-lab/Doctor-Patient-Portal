@@ -1,6 +1,8 @@
 import { Role } from "../../../prisma/generated/client/enums";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
+import { createNotification } from "../notifications/notifications.service";
+import { logAudit } from "../../utils/auditLog";
 import type { CreateRecordInput, ListRecordsQuery } from "./medical-records.validators";
 
 // ────────────────────────────────────────────────────────────
@@ -108,6 +110,32 @@ export const createRecord = async (
         fileSizeBytes: input.fileSizeBytes ?? null,
       },
       select: recordSelect,
+    });
+
+    // When a doctor uploads for a patient, notify the patient
+    if (role === Role.DOCTOR) {
+      const patientUser = await prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { userId: true, firstName: true },
+      });
+      if (patientUser) {
+        void createNotification({
+          userId: patientUser.userId,
+          title: "New Medical Record Added",
+          message: `A new medical record "${record.title}" has been added to your profile by your doctor.`,
+          type: "SYSTEM",
+          referenceId: record.id,
+          referenceType: "medical_record",
+        });
+      }
+    }
+
+    void logAudit({
+      userId,
+      action: "CREATE",
+      entity: "medical_record",
+      entityId: record.id,
+      newValue: { title: record.title, fileType: record.fileType, uploadedByRole: role },
     });
 
     return record;
@@ -264,6 +292,14 @@ export const softDeleteRecord = async (userId: string, recordId: string) => {
     await prisma.medicalRecord.update({
       where: { id: record.id },
       data: { deletedAt: new Date() },
+    });
+
+    void logAudit({
+      userId,
+      action: "DELETE",
+      entity: "medical_record",
+      entityId: recordId,
+      oldValue: { softDeleted: true },
     });
 
     return { message: "Medical record deleted successfully" };

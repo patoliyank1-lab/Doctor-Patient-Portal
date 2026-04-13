@@ -2,6 +2,8 @@ import { Prisma } from "../../../prisma/generated/client/client";
 import { AppointmentStatus, Role } from "../../../prisma/generated/client/enums";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
+import { createNotification } from "../notifications/notifications.service";
+import { logAudit } from "../../utils/auditLog";
 import type {
   CancelAppointmentInput,
   CreateAppointmentInput,
@@ -10,7 +12,7 @@ import type {
   UpdateAppointmentStatusInput,
 } from "./appointments.validators";
 
-const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd); // JS treats YYYY-MM-DD as UTC midnight
+const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd);
 
 const startOfNextDayUtc = (yyyyMmDd: string) => {
   const d = dateOnly(yyyyMmDd);
@@ -18,7 +20,6 @@ const startOfNextDayUtc = (yyyyMmDd: string) => {
 };
 
 const combineDateAndTimeUtc = (date: Date, time: Date) => {
-  // Prisma maps @db.Date and @db.Time to JS Date. We interpret both in UTC.
   return new Date(
     Date.UTC(
       date.getUTCFullYear(),
@@ -147,6 +148,8 @@ const appointmentDetailSelect = {
   },
 } as const;
 
+// ─── bookAppointment ─────────────────────────────────────────
+
 export const bookAppointment = async (
   userId: string,
   input: CreateAppointmentInput,
@@ -168,29 +171,28 @@ export const bookAppointment = async (
   try {
     const patientId = await findPatientIdByUserId(userId);
 
-    return await prisma.$transaction(async (tx) => {
+    // Need patient + doctor userId for notifications after the transaction
+    const [patientUser, doctorUser] = await Promise.all([
+      prisma.patient.findUnique({ where: { id: patientId }, select: { userId: true, firstName: true, lastName: true } }),
+      prisma.doctor.findFirst({
+        where: { availabilitySlots: { some: { id: input.slotId } } },
+        select: { userId: true, firstName: true, lastName: true },
+      }),
+    ]);
+
+    const result = await prisma.$transaction(async (tx) => {
       const slot = await tx.availabilitySlot.findUnique({
         where: { id: input.slotId },
-        select: {
-          id: true,
-          doctorId: true,
-          date: true,
-          startTime: true,
-          endTime: true,
-          isBooked: true,
-        },
+        select: { id: true, doctorId: true, date: true, startTime: true, endTime: true, isBooked: true },
       });
       if (!slot) throw new AppError("Slot not found", 404);
       if (slot.isBooked) throw new AppError("Slot is not available", 409);
 
-      // Concurrency-safe booking: only one transaction can flip isBooked from false -> true.
       const updateResult = await tx.availabilitySlot.updateMany({
         where: { id: input.slotId, isBooked: false },
         data: { isBooked: true },
       });
-      if (updateResult.count !== 1) {
-        throw new AppError("Slot is not available", 409);
-      }
+      if (updateResult.count !== 1) throw new AppError("Slot is not available", 409);
 
       const scheduledAt = combineDateAndTimeUtc(slot.date, slot.startTime);
 
@@ -207,17 +209,48 @@ export const bookAppointment = async (
 
       return created as any;
     });
+
+    // Fire notifications after transaction (fire-and-forget)
+    if (doctorUser) {
+      void createNotification({
+        userId: doctorUser.userId,
+        title: "New Appointment Request",
+        message: `${patientUser?.firstName ?? "A patient"} ${patientUser?.lastName ?? ""} has booked an appointment with you.`,
+        type: "APPOINTMENT",
+        referenceId: result.id,
+        referenceType: "appointment",
+      });
+    }
+    if (patientUser) {
+      void createNotification({
+        userId: patientUser.userId,
+        title: "Appointment Booked",
+        message: `Your appointment with Dr. ${result.doctor.firstName} ${result.doctor.lastName} has been submitted and is pending confirmation.`,
+        type: "APPOINTMENT",
+        referenceId: result.id,
+        referenceType: "appointment",
+      });
+    }
+
+    void logAudit({
+      userId,
+      action: "CREATE",
+      entity: "appointment",
+      entityId: result.id,
+      newValue: { status: result.status, doctorId: result.doctor.id },
+    });
+
+    return result;
   } catch (error) {
     if (error instanceof AppError) throw error;
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // slotId is unique on Appointment => prevents double booking at DB-level too
-      if (error.code === "P2002") {
-        throw new AppError("Slot is not available", 409);
-      }
+      if (error.code === "P2002") throw new AppError("Slot is not available", 409);
     }
     throw new UnknownError(error);
   }
 };
+
+// ─── listMyAppointments (Patient) ─────────────────────────────
 
 export const listMyAppointments = async (
   userId: string,
@@ -274,6 +307,8 @@ export const listMyAppointments = async (
   }
 };
 
+// ─── getAppointmentDetail ────────────────────────────────────
+
 export const getAppointmentDetail = async (
   userId: string,
   role: Role,
@@ -287,14 +322,7 @@ export const getAppointmentDetail = async (
   rejectionReason: string | null;
   createdAt: Date;
   updatedAt: Date;
-  slot: {
-    id: string;
-    date: Date;
-    startTime: Date;
-    endTime: Date;
-    doctorId: string;
-    isBooked: boolean;
-  };
+  slot: { id: string; date: Date; startTime: Date; endTime: Date; doctorId: string; isBooked: boolean };
   doctor: {
     id: string;
     userId: string;
@@ -325,23 +353,22 @@ export const getAppointmentDetail = async (
     if (!appt) throw new AppError("Appointment not found", 404);
 
     if (role === Role.ADMIN) return appt as any;
-
     if (role === Role.PATIENT) {
       if (appt.patient.userId !== userId) throw new AppError("Forbidden", 403);
       return appt as any;
     }
-
     if (role === Role.DOCTOR) {
       if (appt.doctor.userId !== userId) throw new AppError("Forbidden", 403);
       return appt as any;
     }
-
     throw new AppError("Unauthorized", 401);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
 };
+
+// ─── listMyAppointmentsForDoctor ─────────────────────────────
 
 export const listMyAppointmentsForDoctor = async (
   userId: string,
@@ -399,6 +426,8 @@ export const listMyAppointmentsForDoctor = async (
   }
 };
 
+// ─── updateAppointmentStatusForDoctor ────────────────────────
+
 export const updateAppointmentStatusForDoctor = async (
   userId: string,
   appointmentId: string,
@@ -422,6 +451,11 @@ export const updateAppointmentStatusForDoctor = async (
   try {
     const doctorId = await findDoctorIdByUserId(userId);
 
+    const doctorProfile = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: { firstName: true, lastName: true },
+    });
+
     const statusMap: Record<UpdateAppointmentStatusInput["status"], AppointmentStatus> = {
       approved: AppointmentStatus.APPROVED,
       rejected: AppointmentStatus.REJECTED,
@@ -429,28 +463,30 @@ export const updateAppointmentStatusForDoctor = async (
     };
     const targetStatus = statusMap[input.status];
 
-    return await prisma.$transaction(async (tx) => {
+    // Need patient userId for notification
+    const apptForNotification = await prisma.appointment.findFirst({
+      where: { id: appointmentId, doctorId, deletedAt: null },
+      select: {
+        patient: { select: { userId: true, firstName: true, lastName: true } },
+      },
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
       const appt = await tx.appointment.findFirst({
         where: { id: appointmentId, doctorId, deletedAt: null },
         select: { id: true, status: true },
       });
       if (!appt) throw new AppError("Appointment not found", 404);
 
-      if (appt.status === AppointmentStatus.CANCELLED) {
-        throw new AppError("Cancelled appointments cannot be updated", 409);
-      }
-      if (appt.status === AppointmentStatus.COMPLETED) {
-        throw new AppError("Completed appointments cannot be updated", 409);
-      }
+      if (appt.status === AppointmentStatus.CANCELLED) throw new AppError("Cancelled appointments cannot be updated", 409);
+      if (appt.status === AppointmentStatus.COMPLETED) throw new AppError("Completed appointments cannot be updated", 409);
 
       const isValidTransition =
         (appt.status === AppointmentStatus.PENDING &&
           (targetStatus === AppointmentStatus.APPROVED || targetStatus === AppointmentStatus.REJECTED)) ||
         (appt.status === AppointmentStatus.APPROVED && targetStatus === AppointmentStatus.COMPLETED);
 
-      if (!isValidTransition) {
-        throw new AppError("Invalid appointment status transition", 409);
-      }
+      if (!isValidTransition) throw new AppError("Invalid appointment status transition", 409);
 
       const updated = await tx.appointment.update({
         where: { id: appt.id },
@@ -463,11 +499,49 @@ export const updateAppointmentStatusForDoctor = async (
 
       return updated as any;
     });
+
+    // Fire notification to patient (fire-and-forget)
+    if (apptForNotification) {
+      const patientUserId = apptForNotification.patient.userId;
+      const drName = `Dr. ${doctorProfile?.firstName ?? ""} ${doctorProfile?.lastName ?? ""}`.trim();
+
+      const notifMap: Record<AppointmentStatus, { title: string; message: string } | null> = {
+        [AppointmentStatus.APPROVED]:   { title: "Appointment Approved", message: `Your appointment with ${drName} has been approved.` },
+        [AppointmentStatus.REJECTED]:   { title: "Appointment Rejected", message: `Your appointment with ${drName} has been rejected.${input.rejectionReason ? ` Reason: ${input.rejectionReason}` : ""}` },
+        [AppointmentStatus.COMPLETED]:  { title: "Appointment Completed", message: `Your appointment with ${drName} has been marked as completed.` },
+        [AppointmentStatus.PENDING]:    null,
+        [AppointmentStatus.CANCELLED]:  null,
+      };
+
+      const notif = notifMap[targetStatus];
+      if (notif) {
+        void createNotification({
+          userId: patientUserId,
+          title: notif.title,
+          message: notif.message,
+          type: "APPOINTMENT",
+          referenceId: result.id,
+          referenceType: "appointment",
+        });
+      }
+    }
+
+    void logAudit({
+      userId,
+      action: input.status.toUpperCase(),
+      entity: "appointment",
+      entityId: result.id,
+      newValue: { status: result.status },
+    });
+
+    return result;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
 };
+
+// ─── cancelAppointment (Patient) ─────────────────────────────
 
 export const cancelAppointment = async (
   userId: string,
@@ -491,7 +565,16 @@ export const cancelAppointment = async (
   try {
     const patientId = await findPatientIdByUserId(userId);
 
-    return await prisma.$transaction(async (tx) => {
+    // Fetch doctor userId for notification before transaction
+    const apptForNotification = await prisma.appointment.findFirst({
+      where: { id: appointmentId, patientId, deletedAt: null },
+      select: {
+        doctor: { select: { userId: true, firstName: true, lastName: true } },
+        patient: { select: { firstName: true, lastName: true } },
+      },
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
       const appt = await tx.appointment.findFirst({
         where: { id: appointmentId, patientId, deletedAt: null },
         select: { id: true, status: true, slotId: true },
@@ -518,11 +601,36 @@ export const cancelAppointment = async (
 
       return updated as any;
     });
+
+    // Notify the doctor that the patient cancelled
+    if (apptForNotification) {
+      const patientName = `${apptForNotification.patient.firstName} ${apptForNotification.patient.lastName}`;
+      void createNotification({
+        userId: apptForNotification.doctor.userId,
+        title: "Appointment Cancelled",
+        message: `${patientName} has cancelled their appointment with you.${input.cancelReason ? ` Reason: ${input.cancelReason}` : ""}`,
+        type: "APPOINTMENT",
+        referenceId: result.id,
+        referenceType: "appointment",
+      });
+    }
+
+    void logAudit({
+      userId,
+      action: "CANCEL",
+      entity: "appointment",
+      entityId: result.id,
+      newValue: { status: "CANCELLED", reason: input.cancelReason },
+    });
+
+    return result;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
 };
+
+// ─── rescheduleAppointment ───────────────────────────────────
 
 export const rescheduleAppointment = async (
   userId: string,
@@ -546,7 +654,16 @@ export const rescheduleAppointment = async (
   try {
     const patientId = await findPatientIdByUserId(userId);
 
-    return await prisma.$transaction(async (tx) => {
+    // Fetch context for notification before transaction
+    const apptForNotification = await prisma.appointment.findFirst({
+      where: { id: appointmentId, patientId, deletedAt: null },
+      select: {
+        doctor: { select: { userId: true, firstName: true, lastName: true } },
+        patient: { select: { userId: true, firstName: true, lastName: true } },
+      },
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
       const appt = await tx.appointment.findFirst({
         where: { id: appointmentId, patientId, deletedAt: null },
         select: { id: true, status: true, slotId: true },
@@ -557,9 +674,7 @@ export const rescheduleAppointment = async (
         throw new AppError("Appointment cannot be rescheduled", 409);
       }
 
-      if (input.newSlotId === appt.slotId) {
-        throw new AppError("newSlotId must be different from current slot", 400);
-      }
+      if (input.newSlotId === appt.slotId) throw new AppError("newSlotId must be different from current slot", 400);
 
       const newSlot = await tx.availabilitySlot.findUnique({
         where: { id: input.newSlotId },
@@ -568,14 +683,12 @@ export const rescheduleAppointment = async (
       if (!newSlot) throw new AppError("Slot not found", 404);
       if (newSlot.isBooked) throw new AppError("Slot is not available", 409);
 
-      // Concurrency-safe booking for the new slot.
       const bookNew = await tx.availabilitySlot.updateMany({
         where: { id: input.newSlotId, isBooked: false },
         data: { isBooked: true },
       });
       if (bookNew.count !== 1) throw new AppError("Slot is not available", 409);
 
-      // Release old slot.
       await tx.availabilitySlot.update({
         where: { id: appt.slotId },
         data: { isBooked: false },
@@ -585,25 +698,40 @@ export const rescheduleAppointment = async (
 
       const updated = await tx.appointment.update({
         where: { id: appt.id },
-        data: {
-          slotId: newSlot.id,
-          doctorId: newSlot.doctorId,
-          status: AppointmentStatus.PENDING,
-          scheduledAt,
-        },
+        data: { slotId: newSlot.id, doctorId: newSlot.doctorId, status: AppointmentStatus.PENDING, scheduledAt },
         select: appointmentSelect,
       });
 
       return updated as any;
     });
+
+    // Notify doctor of the reschedule
+    if (apptForNotification) {
+      const patientName = `${apptForNotification.patient.firstName} ${apptForNotification.patient.lastName}`;
+      void createNotification({
+        userId: apptForNotification.doctor.userId,
+        title: "Appointment Rescheduled",
+        message: `${patientName} has rescheduled their appointment with you to a new time slot.`,
+        type: "APPOINTMENT",
+        referenceId: result.id,
+        referenceType: "appointment",
+      });
+    }
+
+    void logAudit({
+      userId,
+      action: "RESCHEDULE",
+      entity: "appointment",
+      entityId: result.id,
+      newValue: { newSlotId: input.newSlotId, status: "PENDING" },
+    });
+
+    return result;
   } catch (error) {
     if (error instanceof AppError) throw error;
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        throw new AppError("Slot is not available", 409);
-      }
+      if (error.code === "P2002") throw new AppError("Slot is not available", 409);
     }
     throw new UnknownError(error);
   }
 };
-
