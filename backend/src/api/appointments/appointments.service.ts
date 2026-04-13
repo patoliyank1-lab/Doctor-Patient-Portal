@@ -2,7 +2,12 @@ import { Prisma } from "../../../prisma/generated/client/client";
 import { AppointmentStatus } from "../../../prisma/generated/client/enums";
 import { prisma } from "../../config/database";
 import { AppError, UnknownError } from "../../utils/errorHandler";
-import type { CreateAppointmentInput, MyAppointmentsQuery } from "./appointments.validators";
+import type {
+  CancelAppointmentInput,
+  CreateAppointmentInput,
+  MyAppointmentsQuery,
+  RescheduleAppointmentInput,
+} from "./appointments.validators";
 
 const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd); // JS treats YYYY-MM-DD as UTC midnight
 
@@ -183,6 +188,144 @@ export const listMyAppointments = async (
     };
   } catch (error) {
     if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const cancelAppointment = async (
+  userId: string,
+  appointmentId: string,
+  input: CancelAppointmentInput,
+): Promise<{
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: Date;
+  createdAt: Date;
+  slot: { id: string; date: Date; startTime: Date; endTime: Date };
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specializations: string[];
+    profileImageUrl: string | null;
+    consultationFee: any;
+  };
+}> => {
+  try {
+    const patientId = await findPatientIdByUserId(userId);
+
+    return await prisma.$transaction(async (tx) => {
+      const appt = await tx.appointment.findFirst({
+        where: { id: appointmentId, patientId, deletedAt: null },
+        select: { id: true, status: true, slotId: true },
+      });
+      if (!appt) throw new AppError("Appointment not found", 404);
+
+      if (appt.status !== AppointmentStatus.PENDING && appt.status !== AppointmentStatus.APPROVED) {
+        throw new AppError("Appointment cannot be cancelled", 409);
+      }
+
+      const updated = await tx.appointment.update({
+        where: { id: appt.id },
+        data: {
+          status: AppointmentStatus.CANCELLED,
+          ...(input.cancelReason ? { reason: input.cancelReason } : {}),
+        },
+        select: appointmentSelect,
+      });
+
+      await tx.availabilitySlot.update({
+        where: { id: appt.slotId },
+        data: { isBooked: false },
+      });
+
+      return updated as any;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const rescheduleAppointment = async (
+  userId: string,
+  appointmentId: string,
+  input: RescheduleAppointmentInput,
+): Promise<{
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: Date;
+  createdAt: Date;
+  slot: { id: string; date: Date; startTime: Date; endTime: Date };
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specializations: string[];
+    profileImageUrl: string | null;
+    consultationFee: any;
+  };
+}> => {
+  try {
+    const patientId = await findPatientIdByUserId(userId);
+
+    return await prisma.$transaction(async (tx) => {
+      const appt = await tx.appointment.findFirst({
+        where: { id: appointmentId, patientId, deletedAt: null },
+        select: { id: true, status: true, slotId: true },
+      });
+      if (!appt) throw new AppError("Appointment not found", 404);
+
+      if (appt.status !== AppointmentStatus.PENDING && appt.status !== AppointmentStatus.APPROVED) {
+        throw new AppError("Appointment cannot be rescheduled", 409);
+      }
+
+      if (input.newSlotId === appt.slotId) {
+        throw new AppError("newSlotId must be different from current slot", 400);
+      }
+
+      const newSlot = await tx.availabilitySlot.findUnique({
+        where: { id: input.newSlotId },
+        select: { id: true, doctorId: true, date: true, startTime: true, isBooked: true },
+      });
+      if (!newSlot) throw new AppError("Slot not found", 404);
+      if (newSlot.isBooked) throw new AppError("Slot is not available", 409);
+
+      // Concurrency-safe booking for the new slot.
+      const bookNew = await tx.availabilitySlot.updateMany({
+        where: { id: input.newSlotId, isBooked: false },
+        data: { isBooked: true },
+      });
+      if (bookNew.count !== 1) throw new AppError("Slot is not available", 409);
+
+      // Release old slot.
+      await tx.availabilitySlot.update({
+        where: { id: appt.slotId },
+        data: { isBooked: false },
+      });
+
+      const scheduledAt = combineDateAndTimeUtc(newSlot.date, newSlot.startTime);
+
+      const updated = await tx.appointment.update({
+        where: { id: appt.id },
+        data: {
+          slotId: newSlot.id,
+          doctorId: newSlot.doctorId,
+          status: AppointmentStatus.PENDING,
+          scheduledAt,
+        },
+        select: appointmentSelect,
+      });
+
+      return updated as any;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new AppError("Slot is not available", 409);
+      }
+    }
     throw new UnknownError(error);
   }
 };

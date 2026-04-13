@@ -11,6 +11,22 @@ export const createAppointmentSchema = z.object({
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 
+export const appointmentIdParamSchema = z.object({
+  id: z.string().regex(uuidRegex, "Invalid appointment id"),
+});
+
+export const cancelAppointmentSchema = z.object({
+  cancelReason: z.string().trim().min(1).max(500).optional(),
+});
+
+export type CancelAppointmentInput = z.infer<typeof cancelAppointmentSchema>;
+
+export const rescheduleAppointmentSchema = z.object({
+  newSlotId: z.string().regex(uuidRegex, "Invalid newSlotId"),
+});
+
+export type RescheduleAppointmentInput = z.infer<typeof rescheduleAppointmentSchema>;
+
 export const myAppointmentsQuerySchema = z.object({
   page: z
     .union([z.string(), z.number()])

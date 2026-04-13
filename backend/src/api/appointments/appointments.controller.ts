@@ -3,7 +3,13 @@ import { formattedResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import * as appointmentsService from "./appointments.service";
-import { createAppointmentSchema, myAppointmentsQuerySchema } from "./appointments.validators";
+import {
+  appointmentIdParamSchema,
+  cancelAppointmentSchema,
+  createAppointmentSchema,
+  myAppointmentsQuerySchema,
+  rescheduleAppointmentSchema,
+} from "./appointments.validators";
 
 /**
  * @description Book an appointment for authenticated patient using a slot
@@ -38,6 +44,52 @@ export const getMyAppointments = asyncHandler(async (req, res) => {
     const query = myAppointmentsQuerySchema.parse(req.query);
     const result = await appointmentsService.listMyAppointments(req.user.userId, query);
     formattedResponse(res, 200, result, "Appointments fetched successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Cancel an appointment owned by authenticated patient
+ * @route PUT /api/v1/appointments/:id/cancel
+ * @access Patient (cookie JWT)
+ */
+export const cancelAppointment = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const { id } = appointmentIdParamSchema.parse(req.params);
+    const body = cancelAppointmentSchema.parse(req.body ?? {});
+    const updated = await appointmentsService.cancelAppointment(req.user.userId, id, body);
+    formattedResponse(res, 200, updated, "Appointment cancelled successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @description Reschedule an appointment owned by authenticated patient to a new slot
+ * @route PUT /api/v1/appointments/:id/reschedule
+ * @access Patient (cookie JWT)
+ */
+export const rescheduleAppointment = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const { id } = appointmentIdParamSchema.parse(req.params);
+    const input = rescheduleAppointmentSchema.parse(req.body);
+    const updated = await appointmentsService.rescheduleAppointment(req.user.userId, id, input);
+    formattedResponse(res, 200, updated, "Appointment rescheduled successfully");
   } catch (error) {
     if (error instanceof ZodError) {
       throw new AppError("Validation failed", 400, {
