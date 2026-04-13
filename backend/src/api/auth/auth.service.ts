@@ -4,10 +4,11 @@ import { prisma } from "../../config/database";
 import type { UserType } from "../../types";
 import { AppError, UnknownError } from "../../utils/errorHandler";
 import { comparePassword, hashPassword } from "../../utils/password";
-import { createAccessToken, createRefreshToken } from "../../utils/token";
+import { createAccessToken, createRefreshToken, verifyToken } from "../../utils/token";
 import bcrypt from "bcrypt";
 import { createOneTimeToken, consumeOneTimeToken } from "../../utils/verificationToken";
 import { buildForgotPasswordTemplate, buildVerifyEmailTemplate, sendEmail } from "../../utils/email";
+import jwt from "jsonwebtoken";
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync("invalid-password", 10);
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:3000";
@@ -210,6 +211,49 @@ export const getCurrentUser = async (userId: string) => {
     if (!user) throw new AppError("User not found", 404);
     return user;
   } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+export const refreshAccessToken = async (refreshToken: string) => {
+  try {
+    const payload = verifyToken(refreshToken) as any;
+
+    const userId = payload?.userId;
+    if (!userId || typeof userId !== "string") {
+      throw new AppError("Unauthorized", 401, { errors: ["Invalid refresh token"] });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!user || !user.isActive || user.deletedAt) {
+      throw new AppError("Unauthorized", 401, { errors: ["User is inactive"] });
+    }
+
+    const accessToken = createAccessToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return { accessToken };
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new AppError("Unauthorized", 401, { errors: ["Refresh token expired"] });
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw new AppError("Unauthorized", 401, { errors: ["Invalid refresh token"] });
+    }
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }
