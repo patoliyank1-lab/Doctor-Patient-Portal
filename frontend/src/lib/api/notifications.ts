@@ -27,6 +27,13 @@ export async function getNotifications(
   );
 }
 
+/** Helper: GET /notifications?limit=x — Get recent notifications. */
+export async function getRecentNotifications(
+  limit = 3
+): Promise<PaginatedResponse<Notification>> {
+  return getNotifications({ limit });
+}
+
 /**
  * GET /notifications/unread-count — Get only the unread count.
  * Lightweight endpoint used to populate the header bell badge.

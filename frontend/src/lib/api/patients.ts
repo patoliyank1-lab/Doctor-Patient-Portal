@@ -62,12 +62,15 @@ export async function updateMyPatientProfile(
 }
 
 /**
- * PUT /patients/me/image — Update the logged-in patient's profile image.
- * Accepts a FormData body (Content-Type set automatically by browser).
+ * PUT /patients/me/image — Update the logged-in patient's profile image URL.
+ * The image must already be uploaded to S3 via the presigned URL flow.
+ * Sends a JSON body with the public S3 URL of the uploaded image.
+ *
+ * @param profileImageUrl - The public URL of the image already uploaded to S3.
  */
-export async function updatePatientImage(formData: FormData): Promise<Patient> {
+export async function updatePatientImage(profileImageUrl: string): Promise<Patient> {
   return fetchWithAuth<Patient>("/patients/me/image", {
     method: "PUT",
-    body: formData,
+    body: JSON.stringify({ profileImageUrl }),
   });
 }

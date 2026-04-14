@@ -1,42 +1,72 @@
-import type { Metadata } from "next";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { getMe } from "@/lib/api/auth";
+import { getUpcomingAppointments, getPendingCount, getTotalCount } from "@/lib/api/appointments";
+import { getRecentNotifications } from "@/lib/api/notifications";
+import { WelcomeBanner } from "@/components/features/patient/dashboard/WelcomeBanner";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata = {
+  title: "Dashboard",
+  robots: {
+    index: false,
+    follow: false,
+  }
+};
 
-export default function PatientDashboardPage() {
+// Route Segment Config: Heavily caches the dashboard layout to solve rapid re-render API exhaustion
+export const revalidate = 60;
+
+export default async function PatientDashboardPage() {
+  // Fetch all dashboard data in parallel
+  const [
+    user,
+    upcomingRes,
+    pendingCount,
+    totalCount,
+    notificationsRes
+  ] = await Promise.all([
+    getMe(),
+    getUpcomingAppointments(5),
+    getPendingCount(),
+    getTotalCount(),
+    getRecentNotifications(3)
+  ]);
+
+  // Determine if there is an appointment today
+  const today = new Date().toDateString();
+  const todayAppointment = upcomingRes.data.find(
+    (app) => new Date(app.slot.date).toDateString() === today
+  ) || null;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Welcome back 👋</h2>
-        <p className="mt-1 text-sm text-slate-500">Here&apos;s an overview of your health activity.</p>
-      </div>
+    <PageContainer>
+      {/* 
+        This is a shell page. 
+        As we build the UI components in Part 4, they will be dropped in here.
+      */}
+      <div className="flex flex-col gap-6">
+        <WelcomeBanner user={user as any} todayAppointment={todayAppointment} />
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Upcoming Appointments", value: "2", color: "bg-blue-50 text-blue-600", border: "border-blue-100" },
-          { label: "Medical Records",        value: "8", color: "bg-emerald-50 text-emerald-600", border: "border-emerald-100" },
-          { label: "Doctors Consulted",      value: "3", color: "bg-violet-50 text-violet-600", border: "border-violet-100" },
-          { label: "Reviews Given",          value: "5", color: "bg-amber-50 text-amber-600", border: "border-amber-100" },
-        ].map((s) => (
-          <div key={s.label} className={`rounded-2xl border ${s.border} bg-white p-5 shadow-sm`}>
-            <p className="text-xs font-medium text-slate-500">{s.label}</p>
-            <p className={`mt-2 text-3xl font-bold ${s.color.split(" ")[1]}`}>{s.value}</p>
+        {/* Placeholder for Stat Cards */}
+        <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+          Stat Cards Section Ready (Total: {totalCount}, Pending: {pendingCount})
+        </div>
+
+        {/* Placeholder for Grid Area: Appointments + Right Rail (Actions & Notifications) */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500 lg:col-span-3">
+            Upcoming Appointments Panel Ready (Loaded {upcomingRes.data.length})
           </div>
-        ))}
-      </div>
-
-      {/* Placeholder content area */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-base font-semibold text-slate-900">Recent Activity</h3>
-        <div className="space-y-3">
-          {["Appointment with Dr. Rajesh Kumar — Tomorrow 10:00 AM", "Lab report uploaded — Chest X-ray", "Review submitted for Dr. Priya Sharma"].map((item) => (
-            <div key={item} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              <div className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-              {item}
+          
+          <div className="flex flex-col gap-6 lg:col-span-2">
+            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+              Quick Actions Panel Ready
             </div>
-          ))}
+            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+              Recent Notifications Panel Ready (Loaded {notificationsRes.data.length})
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

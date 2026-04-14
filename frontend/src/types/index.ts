@@ -226,6 +226,6 @@ export interface AuthResponse {
 
 export interface PresignedUrlResponse {
   uploadUrl: string;           // S3 presigned PUT URL
-  fileUrl: string;             // Public URL of the uploaded file
+  publicUrl: string;           // Public URL of the uploaded file
   key: string;                 // S3 object key
 }

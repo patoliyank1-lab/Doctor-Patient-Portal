@@ -17,12 +17,12 @@
  */
 
 import bcrypt from "bcrypt";
-import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client/client.js";
 import { Role, Gender, DoctorApprovalStatus } from "./generated/client/enums.js";
 
-const connectionString = process.env.DATABASE_URL;
+
+const connectionString = 'postgresql://postgres:Password123@localhost:5432/mediconnect';
 if (!connectionString) {
   console.error("❌ DATABASE_URL is not set in .env");
   process.exit(1);

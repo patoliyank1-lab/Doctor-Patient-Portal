@@ -47,7 +47,8 @@ interface BackendSlot {
 // Data fetching helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api/v1";
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
+
 
 async function getDoctor(id: string): Promise<BackendDoctor | null> {
   try {

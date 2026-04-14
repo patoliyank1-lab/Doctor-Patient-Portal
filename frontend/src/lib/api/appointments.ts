@@ -57,6 +57,25 @@ export async function getMyAppointments(
   );
 }
 
+/** Helper: GET /appointments/my?status=upcoming — Get upcoming appointments. */
+export async function getUpcomingAppointments(
+  limit = 5
+): Promise<PaginatedResponse<Appointment>> {
+  return getMyAppointments({ limit, status: "upcoming" });
+}
+
+/** Helper: Get the total count of pending appointments. */
+export async function getPendingCount(): Promise<number> {
+  const res = await getMyAppointments({ limit: 1, status: "pending" });
+  return res.total;
+}
+
+/** Helper: Get the total count of all appointments. */
+export async function getTotalCount(): Promise<number> {
+  const res = await getMyAppointments({ limit: 1 });
+  return res.total;
+}
+
 /** PUT /appointments/:id/cancel — Cancel an appointment (Patient). */
 export async function cancelAppointment(id: string): Promise<Appointment> {
   return fetchWithAuth<Appointment>(`/appointments/${id}/cancel`, {

@@ -763,27 +763,28 @@ export default function RegisterPage() {
       if (form.imageFile) {
         const file = form.imageFile;
         try {
-          const { data: presigned } = await fetchWithAuth<{ data: { uploadUrl: string; publicUrl: string; key: string } }>(
-            "/uploads/presigned-url",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                fileName: file.name,
-                fileType: file.type,
-                fileSizeBytes: file.size,
-                folder: "profile-images",
-              }),
-            }
+          // Step A: get a presigned S3 PUT URL from the backend
+          const presigned = await getPresignedUrl(
+            file.name,
+            file.type,
+            file.size,
+            "profile-images"
           );
+
+          // Step B: PUT the raw file bytes directly to S3 (no auth header needed)
           await uploadToS3(presigned.uploadUrl, file);
+
+          // Step C: save the public S3 URL into the profile
           const imageEndpoint = form.role === "patient" ? "/patients/me/image" : "/doctors/me/image";
           await fetchWithAuth(imageEndpoint, {
             method: "PUT",
             body: JSON.stringify({ profileImageUrl: presigned.publicUrl }),
           });
-        } catch {
-          // Image upload failure is non-fatal; user can update later
-          toast.warning("Profile created, but image upload failed. You can add it later.");
+        } catch (imgErr) {
+          // Image upload is non-fatal — user can set their photo later.
+          // Log the real error so it's visible in dev tools.
+          console.error("[register] profile image upload failed:", imgErr);
+          toast.warning("Profile created, but image upload failed. You can add it from your profile settings.");
         }
       }
 
