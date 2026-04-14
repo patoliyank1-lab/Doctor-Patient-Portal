@@ -103,10 +103,16 @@ export async function fetchWithAuth<T = unknown>(
   const method = (fetchOptions.method ?? "GET").toUpperCase();
 
   // ── 3. GET deduplication ──────────────────────────────────────────────────
+  // NOTE: Skip dedup for retry requests (_skipRefresh=true).
+  // A retry is triggered when a 401 is received and the token is refreshed.
+  // If we allowed the retry to hit the cache, it would return the *same original
+  // promise* that is itself waiting for the retry → circular deadlock →
+  // Promise.allSettled never settles → infinite loading spinner.
   const requestKey = `${method}:${url}`;
-  if (method === "GET" && inflightRequests.has(requestKey)) {
+  if (method === "GET" && !_skipRefresh && inflightRequests.has(requestKey)) {
     return inflightRequests.get(requestKey) as Promise<T>;
   }
+
 
   // ── 4. Execute in a lockable promise ─────────────────────────────────────
   const executionPromise = (async (): Promise<T> => {

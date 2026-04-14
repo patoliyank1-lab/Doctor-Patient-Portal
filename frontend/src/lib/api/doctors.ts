@@ -6,14 +6,20 @@ import type { Doctor, PaginatedResponse } from "@/types";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface DoctorProfilePayload {
-  specialization: string;
-  qualifications: string[];
-  experience: number;
-  bio: string;
-  consultationFee: number;
-  clinicName?: string;
-  clinicAddress?: string;
-  phone: string;
+  firstName?: string;
+  lastName?: string;
+  specializations?: string[];   // backend: specializations (array)
+  qualification?: string;       // backend: qualification (singular)
+  experienceYears?: number;     // backend: experienceYears
+  bio?: string;
+  consultationFee?: number;
+  profileImageUrl?: string;
+}
+
+export interface CreateDoctorProfilePayload extends DoctorProfilePayload {
+  firstName: string;            // required on create
+  lastName: string;             // required on create
+  specializations: string[];    // required on create
 }
 
 export interface DoctorListParams {
@@ -96,7 +102,7 @@ export async function getMyDoctorProfile(): Promise<Doctor> {
 
 /** POST /doctors/me — Create the logged-in doctor's profile. */
 export async function createMyDoctorProfile(
-  payload: DoctorProfilePayload
+  payload: CreateDoctorProfilePayload
 ): Promise<Doctor> {
   return fetchWithAuth<Doctor>("/doctors/me", {
     method: "POST",
@@ -106,7 +112,7 @@ export async function createMyDoctorProfile(
 
 /** PUT /doctors/me — Update the logged-in doctor's profile. */
 export async function updateMyDoctorProfile(
-  payload: Partial<DoctorProfilePayload>
+  payload: DoctorProfilePayload
 ): Promise<Doctor> {
   return fetchWithAuth<Doctor>("/doctors/me", {
     method: "PUT",
@@ -116,12 +122,13 @@ export async function updateMyDoctorProfile(
 
 /**
  * PUT /doctors/me/image — Update the logged-in doctor's profile image.
- * Accepts a FormData body (Content-Type is set automatically by the browser).
+ * The backend expects JSON { profileImageUrl: string } — NOT FormData.
+ * Image upload is done first via S3 presigned URL; the public URL is then sent here.
  */
-export async function updateDoctorImage(formData: FormData): Promise<Doctor> {
+export async function updateDoctorImage(profileImageUrl: string): Promise<Doctor> {
   return fetchWithAuth<Doctor>("/doctors/me/image", {
     method: "PUT",
-    body: formData,
+    body: JSON.stringify({ profileImageUrl }),
   });
 }
 

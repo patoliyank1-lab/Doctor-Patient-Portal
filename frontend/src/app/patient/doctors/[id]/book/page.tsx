@@ -40,22 +40,39 @@ function getNext7Days(): Date[] {
 }
 
 function formatDate(iso: string): string {
+  // Append T00:00 (no Z) so parsed as local midnight in IST
   return new Intl.DateTimeFormat("en-IN", {
     weekday: "long", day: "numeric", month: "long",
-  }).format(new Date(iso));
+  }).format(new Date(`${iso}T00:00`));
 }
 
-function formatTime(iso: string): string {
+function formatTime(raw: string): string {
   try {
-    if (/^\d{2}:\d{2}/.test(iso)) {
-      const [h, m] = iso.split(":");
+    // Plain "HH:mm" or "HH:mm:ss" — parse as local time
+    if (/^\d{2}:\d{2}/.test(raw)) {
+      const [h, m] = raw.split(":");
       const d = new Date();
-      d.setHours(Number(h), Number(m));
+      d.setHours(Number(h), Number(m), 0, 0);
       return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
     }
-    return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-  } catch { return iso; }
+    // ISO datetime (Prisma @db.Time) — read UTC hours directly to avoid tz-shift
+    const d = new Date(raw);
+    const base = new Date();
+    base.setHours(d.getUTCHours(), d.getUTCMinutes(), 0, 0);
+    return base.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  } catch { return raw; }
 }
+
+/** YYYY-MM-DD from local timezone (avoids UTC midnight shift in IST) */
+function localIso(d: Date): string {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function todayIso(): string { return localIso(new Date()); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step indicator
@@ -107,9 +124,7 @@ export default function BookAppointmentPage() {
   const [docLoading, setDocLoading] = useState(true);
 
   const [step, setStep] = useState<Step>(0);
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0] ?? ""
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(todayIso);
   const [slots, setSlots]         = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -169,7 +184,9 @@ export default function BookAppointmentPage() {
   }
 
   const next7Days = getNext7Days();
-  const availableSlots = slots.filter((s) => !s.status || s.status === "available");
+  const availableSlots = slots.filter(
+    (s) => !(s as any).isBooked && (!(s as any).status || (s as any).status === "available")
+  );
   const fullName = `${doctor?.firstName ?? ""} ${doctor?.lastName ?? ""}`.trim();
   const avatarUrl = doctor?.profileImageUrl ?? doctor?.profileImage ?? null;
   const specs = doctor?.specializations?.length
@@ -276,9 +293,10 @@ export default function BookAppointmentPage() {
               </h2>
               <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
                 {next7Days.map((date) => {
-                  const iso = date.toISOString().split("T")[0] ?? "";
+                  const iso = localIso(date);
                   const isSelected = iso === selectedDate;
-                  const isToday = iso === new Date().toISOString().split("T")[0];
+                  const isToday = iso === todayIso();
+
                   return (
                     <button
                       key={iso}

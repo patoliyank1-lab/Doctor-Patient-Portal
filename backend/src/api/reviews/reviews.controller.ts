@@ -33,11 +33,10 @@ export const createReview = asyncHandler(async (req, res) => {
 /**
  * @description Get all reviews for a specific doctor (with average rating).
  * @route GET /api/v1/reviews/doctor/:doctorId
- * @access Auth
+ * @access Public — no authentication required
  */
 export const getDoctorReviews = asyncHandler(async (req, res) => {
   try {
-    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
     const { doctorId } = doctorIdParamSchema.parse(req.params);
     const query = listReviewsQuerySchema.parse(req.query);
     const result = await reviewsService.listDoctorReviews(doctorId, query);
@@ -50,6 +49,7 @@ export const getDoctorReviews = asyncHandler(async (req, res) => {
     throw new UnknownError(error);
   }
 });
+
 
 /**
  * @description Get all reviews submitted by the authenticated patient.

@@ -30,11 +30,20 @@ export async function submitReview(
 
 /** GET /reviews/doctor/:doctorId — Get all reviews for a doctor (public). */
 export async function getDoctorReviews(doctorId: string): Promise<Review[]> {
-  const res = await fetchWithAuth<{ reviews: Review[] } | Review[]>(`/reviews/doctor/${doctorId}`);
-  // Backend returns { reviews: [...] } — unwrap it
-  if (Array.isArray(res)) return res;
-  return (res as any).reviews ?? [];
+  try {
+    // Backend returns { reviews: Review[], averageRating: number|null, pagination: {...} }
+    // fetchWithAuth unwraps the outer { success, data } envelope → we receive the data object directly
+    const res = await fetchWithAuth<
+      { reviews: Review[]; averageRating?: number | null; pagination?: unknown } | Review[]
+    >(`/reviews/doctor/${doctorId}`);
+    if (Array.isArray(res)) return res;
+    return (res as any).reviews ?? [];
+  } catch {
+    // Reviews are non-critical — never block the page
+    return [];
+  }
 }
+
 
 /** GET /reviews/my — Get reviews submitted by the logged-in patient. */
 export async function getMyReviews(): Promise<Review[]> {

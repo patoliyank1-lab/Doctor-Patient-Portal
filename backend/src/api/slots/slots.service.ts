@@ -32,10 +32,11 @@ const publicSlotSelect = {
   endTime: true,
 } as const;
 
-const dateOnly = (yyyyMmDd: string) => new Date(yyyyMmDd); // JS treats YYYY-MM-DD as UTC midnight
-
-// Prisma maps @db.Time to JS Date; we anchor to a constant base date.
-const timeOnly = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00`);
+const dateOnly = (yyyyMmDd: string) => new Date(`${yyyyMmDd}T00:00:00Z`); // explicit UTC midnight
+// Anchor time to 1970-01-01 UTC — the Z suffix is CRITICAL.
+// Without Z, V8 parses the string in local (server) timezone, shifting the stored value by the
+// server's UTC offset (e.g. IST +05:30 → 12:00 stored as 06:30 UTC in the DB column).
+const timeOnly = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00Z`);
 
 const toMinutes = (hhmm: string) => {
   const [hRaw, mRaw] = hhmm.split(":");

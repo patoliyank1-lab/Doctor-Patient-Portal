@@ -181,7 +181,7 @@ export function Sidebar({ role, isMobileOpen, onMobileClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col lg:shrink-0 h-screen border-r border-sidebar-border">
+      <aside className="hidden lg:flex lg:w-60 lg:flex-col lg:shrink-0 border-r border-sidebar-border">
         {sidebarContent}
       </aside>
 

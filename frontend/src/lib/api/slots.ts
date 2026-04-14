@@ -2,7 +2,7 @@ import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import type { Slot } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Payloads
+// Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CreateSlotPayload {
@@ -11,18 +11,20 @@ export interface CreateSlotPayload {
   endTime: string;    // "HH:mm"
 }
 
-export interface BulkSlotPayload {
-  startDate: string;    // "YYYY-MM-DD"
-  endDate: string;      // "YYYY-MM-DD"
-  startTime: string;    // "HH:mm"
-  endTime: string;      // "HH:mm"
-  daysOfWeek: number[]; // 0=Sun, 1=Mon … 6=Sat
+/** What the backend actually returns from POST /slots/bulk */
+export interface BulkSlotApiPayload {
+  slots: CreateSlotPayload[];
 }
 
 export interface UpdateSlotPayload {
   date?: string;
   startTime?: string;
   endTime?: string;
+}
+
+export interface SlotsPaginatedResponse {
+  slots: Slot[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -37,30 +39,43 @@ export async function createSlot(payload: CreateSlotPayload): Promise<Slot> {
   });
 }
 
-/** POST /slots/bulk — Create multiple slots at once (Doctor). */
+/**
+ * POST /slots/bulk — Create multiple slots at once (Doctor).
+ * NOTE: Backend expects { slots: [{date, startTime, endTime}, ...] }
+ * The caller must expand date-ranges/weekdays client-side.
+ */
 export async function createBulkSlots(
-  payload: BulkSlotPayload
-): Promise<Slot[]> {
-  return fetchWithAuth<Slot[]>("/slots/bulk", {
+  payload: BulkSlotApiPayload
+): Promise<{ createdCount: number; slots: Slot[] }> {
+  return fetchWithAuth<{ createdCount: number; slots: Slot[] }>("/slots/bulk", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-/** GET /slots/my — Get all slots belonging to the logged-in doctor. */
+/**
+ * GET /slots/my — Get all slots belonging to the logged-in doctor.
+ * Backend returns { slots: [], pagination: {} } — correctly typed here.
+ */
 export async function getMySlots(params?: {
   date?: string;
-}): Promise<Slot[]> {
+  status?: "available" | "booked";
+  page?: number;
+  limit?: number;
+}): Promise<SlotsPaginatedResponse> {
   const query = new URLSearchParams();
-  if (params?.date) query.set("date", params.date);
+  if (params?.date)   query.set("date",   params.date);
+  if (params?.status) query.set("status", params.status);
+  if (params?.page)   query.set("page",   String(params.page));
+  if (params?.limit)  query.set("limit",  String(params.limit));
   const qs = query.toString();
-  return fetchWithAuth<Slot[]>(`/slots/my${qs ? `?${qs}` : ""}`);
+  return fetchWithAuth<SlotsPaginatedResponse>(`/slots/my${qs ? `?${qs}` : ""}`);
 }
 
 /** PUT /slots/:id — Update a slot's date or time (Doctor). */
 export async function updateSlot(
   id: string,
-  payload: UpdateSlotPayload
+  payload: CreateSlotPayload
 ): Promise<Slot> {
   return fetchWithAuth<Slot>(`/slots/${id}`, {
     method: "PUT",
@@ -73,6 +88,7 @@ export async function deleteSlot(id: string): Promise<void> {
   return fetchWithAuth<void>(`/slots/${id}`, { method: "DELETE" });
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Patient Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +96,7 @@ export async function deleteSlot(id: string): Promise<void> {
 /**
  * GET /slots/doctor/:doctorId — Get all available slots for a specific doctor.
  * Optionally filter by date.
+ * Backend returns: { slots: Slot[], pagination: {...} } — we unwrap here.
  */
 export async function getDoctorSlots(
   doctorId: string,
@@ -88,7 +105,11 @@ export async function getDoctorSlots(
   const query = new URLSearchParams();
   if (date) query.set("date", date);
   const qs = query.toString();
-  return fetchWithAuth<Slot[]>(
+  const res = await fetchWithAuth<{ slots: Slot[] } | Slot[]>(
     `/slots/doctor/${doctorId}${qs ? `?${qs}` : ""}`
   );
+  // Backend wraps in { slots: [...], pagination: {...} }
+  if (Array.isArray(res)) return res;
+  return (res as { slots?: Slot[] }).slots ?? [];
 }
+

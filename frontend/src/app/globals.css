@@ -66,11 +66,15 @@
 
   html {
     scroll-behavior: smooth;
+    height: 100%;
+    overflow: hidden;   /* no document-level scroll — app-shell pattern */
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    height: 100%;
+    overflow: hidden;   /* scroll happens only inside <main overflow-y-auto> */
   }
 
   /* ── Scrollbar styling ──────────────────────────────────────────────────── */
