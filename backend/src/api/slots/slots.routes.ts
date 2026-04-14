@@ -19,13 +19,8 @@ router.post("/bulk", authenticate, authorize(Role.DOCTOR), createSlotsBulk);
 router.put("/:id", authenticate, authorize(Role.DOCTOR), updateSlot);
 router.delete("/:id", authenticate, authorize(Role.DOCTOR), deleteSlot);
 
-// Patient-facing (and generally safe) listing of available slots
-router.get(
-  "/doctor/:doctorId",
-  authenticate,
-  authorizeAny(Role.PATIENT, Role.DOCTOR, Role.ADMIN),
-  getDoctorAvailableSlots,
-);
+// GET /slots/doctor/:doctorId — public, no auth required
+router.get("/doctor/:doctorId", getDoctorAvailableSlots);
 
 export default router;
 

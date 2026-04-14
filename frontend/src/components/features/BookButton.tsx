@@ -3,20 +3,16 @@
 /**
  * BookButton — client component for the doctor profile page.
  *
- * Visibility rules:
- *   - Guest (not logged in)  → shows button → /auth/login?redirect=/doctors/{id}/book
- *   - Patient                → shows button → /doctors/{id}/book
- *   - Doctor                 → HIDDEN (doctors can't book their own appointments)
- *   - Admin                  → HIDDEN
- *
- * Note: The AuthProvider in the root layout hydrates the auth store
- * via GET /auth/me on every page load. By the time the user sees the
- * page the store is resolved, so no skeleton is needed.
+ * Redirect rules:
+ *   - Guest (not logged in)  → /auth/login?redirect=/patient/doctors/{id}
+ *   - Patient                → /patient/doctors/{id}   (patient booking flow)
+ *   - Doctor / Admin         → HIDDEN (can't book appointments)
  */
 
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ROUTES } from "@/lib/constants";
 
 interface BookButtonProps {
   doctorId: string;
@@ -30,9 +26,10 @@ export function BookButton({ doctorId, className = "", size = "md" }: BookButton
   // Hide for doctors and admins
   if (user?.role === "doctor" || user?.role === "admin") return null;
 
-  const bookPath  = `/doctors/${doctorId}/book`;
-  const loginPath = `/auth/login?redirect=${bookPath}`;
-  const href = user ? bookPath : loginPath;
+  // Patient booking flow lives at /patient/doctors/[id]
+  const patientDoctorPath = ROUTES.PATIENT_BOOK(doctorId);
+  const loginPath = `/auth/login?redirect=${encodeURIComponent(patientDoctorPath)}`;
+  const href = user ? patientDoctorPath : loginPath;
 
   const sizeClasses = {
     sm: "h-9 px-4 text-sm gap-1.5",
@@ -58,9 +55,9 @@ export function BookButtonSidebar({ doctorId }: { doctorId: string }) {
   // Hide for doctors and admins
   if (user?.role === "doctor" || user?.role === "admin") return null;
 
-  const bookPath  = `/doctors/${doctorId}/book`;
-  const loginPath = `/auth/login?redirect=${bookPath}`;
-  const href = user ? bookPath : loginPath;
+  const patientDoctorPath = ROUTES.PATIENT_BOOK(doctorId);
+  const loginPath = `/auth/login?redirect=${encodeURIComponent(patientDoctorPath)}`;
+  const href = user ? patientDoctorPath : loginPath;
 
   return (
     <Link

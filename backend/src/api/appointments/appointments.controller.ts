@@ -11,6 +11,7 @@ import {
   myAppointmentsQuerySchema,
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
+  addDoctorNotesSchema,
 } from "./appointments.validators";
 
 /**
@@ -150,4 +151,25 @@ export const rescheduleAppointment = asyncHandler(async (req, res) => {
     throw new UnknownError(error);
   }
 });
-
+/**
+ * @description Add or update clinical notes on an appointment (Doctor)
+ * @route PUT /api/v1/appointments/:id/notes
+ * @access Doctor (cookie JWT)
+ */
+export const addDoctorNotes = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const { id } = appointmentIdParamSchema.parse(req.params);
+    const input = addDoctorNotesSchema.parse(req.body);
+    const updated = await appointmentsService.saveAppointmentNotes(req.user.userId, id, input.notes);
+    formattedResponse(res, 200, updated, "Clinical notes saved successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, {
+        errors: error.issues.map((i) => i.message),
+      });
+    }
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});

@@ -140,14 +140,16 @@ export async function rescheduleAppointment(
 /**
  * PUT /appointments/:id/status — Update appointment status (Doctor).
  * @param status - "approved" | "rejected" | "completed"
+ * @param rejectionReason - required when status is "rejected"
  */
 export async function updateAppointmentStatus(
   id: string,
-  status: "approved" | "rejected" | "completed"
+  status: "approved" | "rejected" | "completed",
+  rejectionReason?: string
 ): Promise<Appointment> {
   return fetchWithAuth<Appointment>(`/appointments/${id}/status`, {
     method: "PUT",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, ...(rejectionReason ? { rejectionReason } : {}) }),
   });
 }
 

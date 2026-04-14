@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { type ElementType } from "react";
 import {
   BadgeCheck, Star, Clock, IndianRupee, GraduationCap,
   Stethoscope, BookOpen, CalendarDays, ChevronRight,
@@ -41,13 +42,21 @@ interface BackendSlot {
   date: string;
   startTime: string;
   endTime: string;
+  isBooked: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data fetching helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
+// SSR data-fetching uses the backend directly (relative URLs don't work in Node fetch).
+// On browser-side this file is server-only (RSC), so BACKEND_URL is always available.
+const BASE =
+  process.env.BACKEND_URL
+    ? `${process.env.BACKEND_URL}/api/v1`
+    : process.env.NEXT_PUBLIC_API_BASE_URL?.startsWith("/")
+    ? `http://localhost:4000${process.env.NEXT_PUBLIC_API_BASE_URL}`
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1");
 
 
 async function getDoctor(id: string): Promise<BackendDoctor | null> {
@@ -62,33 +71,31 @@ async function getDoctor(id: string): Promise<BackendDoctor | null> {
   }
 }
 
-/** Reviews require auth — best-effort, empty on failure */
+/** Reviews — public endpoint, no auth needed */
 async function getReviews(doctorId: string): Promise<BackendReview[]> {
   try {
     const res = await fetch(`${BASE}/reviews/doctor/${doctorId}`, {
       cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include" as RequestCredentials,
     });
     if (!res.ok) return [];
-    const json = await res.json();
-    return (json.data as BackendReview[]) ?? [];
+    const json = await res.json() as { data?: { reviews?: BackendReview[] } };
+    // Backend returns { data: { reviews: [...], pagination: {...} } }
+    return json.data?.reviews ?? [];
   } catch {
     return [];
   }
 }
 
-/** Slots require auth — best-effort, empty on failure */
+/** Slots — public endpoint, no auth needed */
 async function getSlots(doctorId: string): Promise<BackendSlot[]> {
   try {
     const res = await fetch(`${BASE}/slots/doctor/${doctorId}`, {
       cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include" as RequestCredentials,
     });
     if (!res.ok) return [];
-    const json = await res.json();
-    return (json.data as BackendSlot[]) ?? [];
+    const json = await res.json() as { data?: { slots?: BackendSlot[] } };
+    // Backend returns { data: { slots: [...], pagination: {...} } }
+    return json.data?.slots ?? [];
   } catch {
     return [];
   }
@@ -163,7 +170,7 @@ function formatDate(dateStr: string): string {
 // Section header
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+function SectionHeader({ icon: Icon, title }: { icon: ElementType; title: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-5">
       <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50">
@@ -203,8 +210,9 @@ export default async function DoctorProfilePage({ params }: PageProps) {
 
   // Group upcoming slots by date (next 5 dates)
   const now = new Date();
+  // Filter: future date AND not already booked
   const upcomingSlots = slots
-    .filter((s) => new Date(s.date) >= now && !("isBooked" in s))
+    .filter((s) => new Date(s.date) >= now && !s.isBooked)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 15);
 
@@ -214,7 +222,8 @@ export default async function DoctorProfilePage({ params }: PageProps) {
     return acc;
   }, {});
 
-  const bookPath = `/doctors/${id}/book`;
+  // Booking path — patient flow lives under /patient/doctors/[id]/book
+  const bookPath = `/patient/doctors/${id}/book`;
 
   return (
     <div className="min-h-screen bg-slate-50">

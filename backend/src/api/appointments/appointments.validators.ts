@@ -65,3 +65,8 @@ export const myAppointmentsQuerySchema = z.object({
 
 export type MyAppointmentsQuery = z.infer<typeof myAppointmentsQuerySchema>;
 
+export const addDoctorNotesSchema = z.object({
+  notes: z.string().max(5000, "Notes cannot exceed 5000 characters"),
+});
+
+export type AddDoctorNotesInput = z.infer<typeof addDoctorNotesSchema>;

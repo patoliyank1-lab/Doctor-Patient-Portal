@@ -735,3 +735,58 @@ export const rescheduleAppointment = async (
     throw new UnknownError(error);
   }
 };
+
+// ─── saveAppointmentNotes ─────────────────────────────────────
+
+/**
+ * Allow a doctor to save or overwrite clinical notes on any appointment they own.
+ * Notes can be added regardless of status (pending/approved/completed).
+ */
+export const saveAppointmentNotes = async (
+  userId: string,
+  appointmentId: string,
+  notes: string,
+): Promise<{
+  id: string;
+  status: AppointmentStatus;
+  doctorNotes: string | null;
+  scheduledAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}> => {
+  try {
+    const doctorId = await findDoctorIdByUserId(userId);
+
+    const appt = await prisma.appointment.findFirst({
+      where: { id: appointmentId, doctorId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!appt) throw new AppError("Appointment not found or access denied", 404);
+
+    const updated = await prisma.appointment.update({
+      where: { id: appt.id },
+      data: { doctorNotes: notes.trim() || null },
+      select: {
+        id: true,
+        status: true,
+        doctorNotes: true,
+        scheduledAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    void logAudit({
+      userId,
+      action: "UPDATE_NOTES",
+      entity: "appointment",
+      entityId: updated.id,
+      newValue: { doctorNotes: !!updated.doctorNotes },
+    });
+
+    return updated;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};

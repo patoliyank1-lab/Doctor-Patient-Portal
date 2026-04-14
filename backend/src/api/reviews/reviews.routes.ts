@@ -17,13 +17,8 @@ router.get("/my", authenticate, authorize(Role.PATIENT), getMyReviews);
 // POST /reviews
 router.post("/", authenticate, authorize(Role.PATIENT), createReview);
 
-// GET /reviews/doctor/:doctorId  — any authenticated user
-router.get(
-  "/doctor/:doctorId",
-  authenticate,
-  authorizeAny(Role.PATIENT, Role.DOCTOR, Role.ADMIN),
-  getDoctorReviews,
-);
+// GET /reviews/doctor/:doctorId  — public, no auth required
+router.get("/doctor/:doctorId", getDoctorReviews);
 
 // DELETE /reviews/:id  — Patient or Admin
 router.delete(
