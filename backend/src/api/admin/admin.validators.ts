@@ -59,6 +59,10 @@ export const listAuditLogsQuerySchema = z.object({
   entity: z.string().trim().max(100).optional(),
   /** Filter by action keyword, e.g. "CREATE" | "UPDATE" */
   action: z.string().trim().max(100).optional(),
+  /** Filter logs from this date (inclusive) YYYY-MM-DD */
+  dateFrom: z.string().regex(dateRegex, "dateFrom must be YYYY-MM-DD").optional(),
+  /** Filter logs to this date (inclusive) YYYY-MM-DD */
+  dateTo: z.string().regex(dateRegex, "dateTo must be YYYY-MM-DD").optional(),
 });
 
 export type ListAuditLogsQuery = z.infer<typeof listAuditLogsQuerySchema>;

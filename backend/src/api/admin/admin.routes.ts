@@ -14,7 +14,9 @@ import {
   getPatientAnalytics,
   listDoctors,
   listUsers,
+  listPatients,
   rejectDoctor,
+  updateAppointmentStatus,
 } from "./admin.controller";
 
 const router = express.Router();
@@ -26,6 +28,10 @@ router.put("/users/:id/deactivate",        authenticate, authorize(Role.ADMIN), 
 router.put("/users/:id/activate",          authenticate, authorize(Role.ADMIN), activateUser);
 router.get("/audit-logs",                  authenticate, authorize(Role.ADMIN), getAuditLogs);
 router.get("/appointments",                authenticate, authorize(Role.ADMIN), getAllAppointments);
+router.patch("/appointments/:id/status",   authenticate, authorize(Role.ADMIN), updateAppointmentStatus);
+
+// Patients
+router.get("/patients",                    authenticate, authorize(Role.ADMIN), listPatients);
 
 // Doctor management
 router.get("/doctors",                     authenticate, authorize(Role.ADMIN), listDoctors);

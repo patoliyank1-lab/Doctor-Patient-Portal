@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -23,12 +23,12 @@ import type { AppointmentStatus } from "@/lib/api/appointments";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:     { label: "Pending",     color: "bg-amber-100 text-amber-700",   icon: <Clock      className="h-3.5 w-3.5" /> },
-  approved:    { label: "Confirmed",   color: "bg-blue-100 text-blue-700",     icon: <Calendar   className="h-3.5 w-3.5" /> },
-  completed:   { label: "Completed",   color: "bg-emerald-100 text-emerald-700", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  cancelled:   { label: "Cancelled",   color: "bg-red-100 text-red-600",       icon: <XCircle    className="h-3.5 w-3.5" /> },
-  rejected:    { label: "Rejected",    color: "bg-rose-100 text-rose-700",     icon: <XCircle    className="h-3.5 w-3.5" /> },
-  rescheduled: { label: "Rescheduled", color: "bg-purple-100 text-purple-700", icon: <RefreshCw  className="h-3.5 w-3.5" /> },
+  pending: { label: "Pending", color: "bg-amber-100 text-amber-700", icon: <Clock className="h-3.5 w-3.5" /> },
+  approved: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: <Calendar className="h-3.5 w-3.5" /> },
+  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  cancelled: { label: "Cancelled", color: "bg-red-100 text-red-600", icon: <XCircle className="h-3.5 w-3.5" /> },
+  rejected: { label: "Rejected", color: "bg-rose-100 text-rose-700", icon: <XCircle className="h-3.5 w-3.5" /> },
+  rescheduled: { label: "Rescheduled", color: "bg-purple-100 text-purple-700", icon: <RefreshCw className="h-3.5 w-3.5" /> },
 };
 
 function formatDateTime(iso?: string): string {
@@ -49,8 +49,8 @@ function getDoctorName(apt: Appointment): string {
 }
 
 const FILTER_TABS: { label: string; value: AppointmentStatus | "" }[] = [
-  { label: "All",       value: "" },
-  { label: "Pending",   value: "pending" },
+  { label: "All", value: "" },
+  { label: "Pending", value: "pending" },
   { label: "Confirmed", value: "approved" },
   { label: "Completed", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
@@ -64,14 +64,18 @@ const PAGE_SIZE = 10;
 
 export default function PatientAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [total, setTotal]               = useState(0);
-  const [page, setPage]                 = useState(1);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "">("");
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchAppointments = useCallback(async () => {
-    setLoading(true);
+  // Track polling interval ref so we can clear it
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchAppointments = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getMyAppointments({
         page,
@@ -80,14 +84,50 @@ export default function PatientAppointmentsPage() {
       });
       setAppointments((res.data ?? []) as Appointment[]);
       setTotal(res.total ?? 0);
+      setLastUpdated(new Date());
     } catch {
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [page, statusFilter]);
 
+  // Initial + dependency-change fetch
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+
+  // Auto-poll every 15s when there are pending appointments and tab is visible
+  useEffect(() => {
+    function startPolling() {
+      pollRef.current = setInterval(() => {
+        if (document.visibilityState === "visible") {
+          fetchAppointments(true);
+        }
+      }, 15_000);
+    }
+
+    const hasPending = appointments.some(
+      (a) => ["pending", "approved"].includes((a.status ?? "").toLowerCase())
+    );
+
+    if (hasPending && !statusFilter) {
+      startPolling();
+    }
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [appointments, statusFilter, fetchAppointments]);
+
+  // Also re-fetch when the user returns to this browser tab
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        fetchAppointments(true);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchAppointments]);
 
   async function handleCancel(id: string) {
     if (!confirm("Cancel this appointment?")) return;
@@ -104,6 +144,11 @@ export default function PatientAppointmentsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // Format last-updated time
+  const lastUpdatedStr = lastUpdated
+    ? lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })
+    : null;
+
   return (
     <PageContainer
       title="My Appointments"
@@ -119,6 +164,35 @@ export default function PatientAppointmentsPage() {
     >
       <div className="space-y-5">
 
+        {/* Live status bar */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            {appointments.some((a) => (a.status ?? "").toLowerCase() === "pending") && (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                <span className="text-xs font-medium text-amber-700">
+                  Pending appointments — auto-refreshing every 15s
+                </span>
+              </>
+            )}
+            {!appointments.some((a) => (a.status ?? "").toLowerCase() === "pending") && lastUpdatedStr && (
+              <span className="text-xs text-slate-400">Last updated: {lastUpdatedStr}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchAppointments()}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
         {/* Status filter pills */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-4 w-4 shrink-0 text-slate-400" />
@@ -127,11 +201,10 @@ export default function PatientAppointmentsPage() {
               key={tab.value}
               type="button"
               onClick={() => { setStatusFilter(tab.value); setPage(1); }}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                statusFilter === tab.value
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${statusFilter === tab.value
                   ? "bg-blue-600 text-white shadow-sm"
                   : "border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -165,13 +238,14 @@ export default function PatientAppointmentsPage() {
         {!loading && appointments.length > 0 && (
           <div className="space-y-3">
             {appointments.map((apt) => {
-              const cfg = STATUS_CONFIG[apt.status] ?? STATUS_CONFIG.pending!;
-              const isCancellable = apt.status === "pending" || apt.status === "approved";
+              // Backend returns uppercase ("APPROVED") — normalize for lookup
+              const statusKey = (apt.status ?? "").toLowerCase();
+              const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.pending!;
+              const isCancellable = statusKey === "pending" || statusKey === "approved";
               return (
                 <div key={apt.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-4">
-                    {/* Color dot */}
-                    <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${cfg.color.split(" ")[0]?.replace("bg-", "bg-")}`} />
+                    <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${cfg.color.split(" ")[0]}`} />
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900">{getDoctorName(apt)}</p>
                       {(apt.doctor as any)?.specializations?.[0] || (apt.doctor as any)?.specialization ? (
@@ -222,6 +296,7 @@ export default function PatientAppointmentsPage() {
             })}
           </div>
         )}
+
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (

@@ -232,6 +232,16 @@ export const listAuditLogs = async (query: ListAuditLogsQuery) => {
     if (query.userId) where.userId = query.userId;
     if (query.entity) where.entity = { contains: query.entity, mode: "insensitive" };
     if (query.action) where.action = { contains: query.action, mode: "insensitive" };
+    if (query.dateFrom || query.dateTo) {
+      where.createdAt = {};
+      if (query.dateFrom) where.createdAt.gte = new Date(query.dateFrom);
+      if (query.dateTo) {
+        // Include the full dateTo day
+        const end = new Date(query.dateTo);
+        end.setDate(end.getDate() + 1);
+        where.createdAt.lt = end;
+      }
+    }
 
     const skip = (query.page - 1) * query.limit;
     const take = query.limit;
@@ -584,3 +594,94 @@ export const updateDoctorApproval = async (
     throw new UnknownError(error);
   }
 };
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/patients — all patients with filters
+// ────────────────────────────────────────────────────────────
+
+export const listAllPatients = async (query: {
+  page: number; limit: number; search?: string; isActive?: boolean;
+}) => {
+  try {
+    const where: any = { role: "PATIENT", deletedAt: null };
+    if (query.isActive !== undefined) where.isActive = query.isActive;
+    if (query.search) {
+      where.OR = [
+        { email: { contains: query.search, mode: "insensitive" } },
+        { patient: { firstName: { contains: query.search, mode: "insensitive" } } },
+        { patient: { lastName:  { contains: query.search, mode: "insensitive" } } },
+        { patient: { phone:     { contains: query.search, mode: "insensitive" } } },
+      ];
+    }
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where, skip, take,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true, email: true, isActive: true, createdAt: true,
+          patient: {
+            select: {
+              id: true, firstName: true, lastName: true, phone: true,
+              gender: true, dateOfBirth: true, profileImageUrl: true,
+              bloodGroup: true, address: true,
+              _count: { select: { appointments: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    return { patients: users, pagination: { total, page: query.page, limit: query.limit, totalPages } };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+// ────────────────────────────────────────────────────────────
+// PATCH /admin/appointments/:id/status — update status
+// ────────────────────────────────────────────────────────────
+
+const VALID_STATUSES = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED", "REJECTED"] as const;
+type AppStatus = (typeof VALID_STATUSES)[number];
+
+export const updateAppointmentStatus = async (
+  adminUserId: string,
+  appointmentId: string,
+  status: AppStatus
+) => {
+  try {
+    const appt = await prisma.appointment.findFirst({
+      where: { id: appointmentId, deletedAt: null },
+      select: { id: true, status: true, patientId: true, patient: { select: { firstName: true, lastName: true } } },
+    });
+    if (!appt) throw new AppError("Appointment not found", 404);
+
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status },
+      select: { id: true, status: true, scheduledAt: true },
+    });
+
+    void logAudit({
+      userId: adminUserId,
+      action: "UPDATE_APPOINTMENT_STATUS",
+      entity: "appointment",
+      entityId: appointmentId,
+      oldValue: { status: appt.status },
+      newValue: { status },
+    });
+
+    return { appointment: updated, message: `Appointment status updated to ${status}` };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+

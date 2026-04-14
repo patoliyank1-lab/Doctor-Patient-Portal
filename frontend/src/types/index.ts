@@ -37,6 +37,9 @@ export interface Doctor {
   experience?: number;          // legacy alias
   bio?: string;
   consultationFee?: number;
+  phone?: string;               // may come from user or joined data
+  clinicName?: string;
+  clinicAddress?: string;
   approvalStatus?: DoctorStatus;
   status?: DoctorStatus;        // legacy alias
   profileImageUrl?: string;
@@ -263,14 +266,68 @@ export interface AppointmentAnalyticsData {
 
 export interface AuditLog {
   id: string;
-  userId: string;
-  user: User;
-  action: string;              // e.g. "DOCTOR_APPROVED", "APPOINTMENT_CANCELLED"
+  userId: string | null;
+  user: (User & { email?: string }) | null;
+  action: string;              // e.g. "DOCTOR_APPROVED", "LOGIN"
   entity: string;              // e.g. "Doctor", "Appointment"
   entityId: string;
-  metadata?: Record<string, unknown>;
-  ipAddress?: string;
+  oldValue?: Record<string, unknown> | null;
+  newValue?: Record<string, unknown> | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
   createdAt: string;
+}
+
+export interface AuditLogListResponse {
+  logs: AuditLog[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
+// ── Admin Patient (GET /admin/patients) ───────────────────────────────────────
+
+export interface AdminPatient {
+  id: string;            // user.id
+  email: string;
+  isActive: boolean;
+  createdAt: string;
+  patient: {
+    id: string;          // patient.id
+    firstName: string;
+    lastName: string;
+    phone?: string | null;
+    gender?: string | null;
+    dateOfBirth?: string | null;
+    profileImageUrl?: string | null;
+    bloodGroup?: string | null;
+    address?: string | null;
+    _count?: { appointments: number };
+  } | null;
+}
+
+export interface AdminPatientListResponse {
+  patients: AdminPatient[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
+// ── Admin Appointment (GET /admin/appointments) ────────────────────────────────
+
+export interface AdminAppointment {
+  id: string;
+  status: string;
+  scheduledAt?: string;
+  reason?: string;
+  doctorNotes?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  patient: { id: string; firstName: string; lastName: string; phone?: string } | null;
+  doctor:  { id: string; firstName: string; lastName: string; specializations?: string[] } | null;
+  slot:    { id: string; date?: string; startTime?: string; endTime?: string } | null;
+}
+
+export interface AdminAppointmentListResponse {
+  appointments: AdminAppointment[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
 // ── Shared / Generic ──────────────────────────────────────────────────────────

@@ -194,3 +194,36 @@ export const rejectDoctor = asyncHandler(async (req, res) => {
   }
 });
 
+export const listPatients = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const page  = Math.max(1, Number(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const search    = typeof req.query.search === "string" ? req.query.search : undefined;
+    const isActiveR = req.query.isActive;
+    const isActive  = isActiveR === "true" ? true : isActiveR === "false" ? false : undefined;
+    const result = await adminService.listAllPatients({ page, limit, search, isActive });
+    formattedResponse(res, 200, result, "Patients fetched successfully");
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+export const updateAppointmentStatus = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const { id } = req.params;
+    if (!id) throw new AppError("Appointment id required", 400);
+    const { status } = req.body as { status: string };
+    const ALLOWED = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED", "REJECTED"];
+    if (!status || !ALLOWED.includes(status)) {
+      throw new AppError(`status must be one of ${ALLOWED.join(", ")}`, 400);
+    }
+    const result = await adminService.updateAppointmentStatus(req.user.userId, id, status as any);
+    formattedResponse(res, 200, result, result.message);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});

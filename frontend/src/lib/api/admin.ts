@@ -1,8 +1,10 @@
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import type {
   User,
-  AuditLog,
-  Appointment,
+  AuditLogListResponse,
+  AdminPatientListResponse,
+  AdminAppointment,
+  AdminAppointmentListResponse,
   AdminDashboardData,
   PatientAnalyticsData,
   DoctorAnalyticsData,
@@ -10,9 +12,7 @@ import type {
   PaginatedResponse,
 } from "@/types";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Params
-// ─────────────────────────────────────────────────────────────────────────────
+// Param interfaces
 
 export interface UserListParams {
   page?: number;
@@ -33,7 +33,10 @@ export interface AuditLogParams {
   page?: number;
   limit?: number;
   action?: string;
+  entity?: string;
   userId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface AdminAppointmentParams {
@@ -45,136 +48,125 @@ export interface AdminAppointmentParams {
   dateTo?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Analytics Endpoints
-// ─────────────────────────────────────────────────────────────────────────────
+export interface AdminPatientParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+}
 
-/** GET /admin/dashboard — Full platform stats + recent appointments. */
+// Analytics
+
 export async function getDashboard(): Promise<AdminDashboardData> {
   return fetchWithAuth<AdminDashboardData>("/admin/dashboard");
 }
 
-/** GET /admin/analytics/patients — Patient totals + monthly growth + top patients. */
 export async function getPatientAnalytics(): Promise<PatientAnalyticsData> {
   return fetchWithAuth<PatientAnalyticsData>("/admin/analytics/patients");
 }
 
-/** GET /admin/analytics/doctors — Doctor totals + by specialization + top doctors. */
 export async function getDoctorAnalytics(): Promise<DoctorAnalyticsData> {
   return fetchWithAuth<DoctorAnalyticsData>("/admin/analytics/doctors");
 }
 
-/** GET /admin/analytics/appointments — Totals + rates + by status + monthly trend. */
 export async function getAppointmentAnalytics(): Promise<AppointmentAnalyticsData> {
   return fetchWithAuth<AppointmentAnalyticsData>("/admin/analytics/appointments");
 }
 
-/** GET /admin/doctors — List ALL doctors (any approval status) with pagination + filters. */
-export async function getAdminDoctors(
-  params: AdminDoctorListParams = {}
-): Promise<{
-  doctors: import("@/types").Doctor[];
-  pagination: { total: number; page: number; limit: number; totalPages: number };
-}> {
-  const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
-  query.set("limit", String(params.limit ?? 15));
-  if (params.search) query.set("search", params.search);
-  if (params.approvalStatus) query.set("approvalStatus", params.approvalStatus);
+// Doctors
 
-  return fetchWithAuth(`/admin/doctors?${query}`);
+export async function getAdminDoctors(params: AdminDoctorListParams = {}) {
+  const query = new URLSearchParams();
+  query.set("page",  String(params.page  ?? 1));
+  query.set("limit", String(params.limit ?? 15));
+  if (params.search)         query.set("search", params.search);
+  if (params.approvalStatus) query.set("approvalStatus", params.approvalStatus);
+  return fetchWithAuth<any>(`/admin/doctors?${query}`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// User Management Endpoints
-// ─────────────────────────────────────────────────────────────────────────────
+// Users
 
-/** GET /admin/users — List all users across all roles. */
-export async function getAllUsers(
-  params: UserListParams = {}
-): Promise<PaginatedResponse<User>> {
+export async function getAllUsers(params: UserListParams = {}): Promise<PaginatedResponse<User>> {
   const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
+  query.set("page",  String(params.page  ?? 1));
   query.set("limit", String(params.limit ?? 10));
-  if (params.search) query.set("search", params.search);
-  if (params.role) query.set("role", params.role);
-  if (params.isActive !== undefined)
-    query.set("isActive", String(params.isActive));
-
+  if (params.search)   query.set("search",   params.search);
+  if (params.role)     query.set("role",     params.role);
+  if (params.isActive !== undefined) query.set("isActive", String(params.isActive));
   return fetchWithAuth<PaginatedResponse<User>>(`/admin/users?${query}`);
 }
 
-/** PUT /admin/users/:id/deactivate — Deactivate any user account. */
-export async function deactivateUser(id: string): Promise<User> {
-  return fetchWithAuth<User>(`/admin/users/${id}/deactivate`, {
-    method: "PUT",
-  });
+export async function deactivateUser(id: string): Promise<{ message: string }> {
+  return fetchWithAuth<{ message: string }>(`/admin/users/${id}/deactivate`, { method: "PUT" });
 }
 
-/** PUT /admin/users/:id/activate — Reactivate a deactivated user account. */
-export async function activateUser(id: string): Promise<User> {
-  return fetchWithAuth<User>(`/admin/users/${id}/activate`, {
-    method: "PUT",
-  });
+export async function activateUser(id: string): Promise<{ message: string }> {
+  return fetchWithAuth<{ message: string }>(`/admin/users/${id}/activate`, { method: "PUT" });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Audit Log Endpoint
-// ─────────────────────────────────────────────────────────────────────────────
+// Audit Logs
 
-/** GET /admin/audit-logs — View the full platform audit trail. */
-export async function getAuditLogs(
-  params: AuditLogParams = {}
-): Promise<PaginatedResponse<AuditLog>> {
+export async function getAuditLogs(params: AuditLogParams = {}): Promise<AuditLogListResponse> {
   const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
+  query.set("page",  String(params.page  ?? 1));
   query.set("limit", String(params.limit ?? 20));
-  if (params.action) query.set("action", params.action);
-  if (params.userId) query.set("userId", params.userId);
-
-  return fetchWithAuth<PaginatedResponse<AuditLog>>(
-    `/admin/audit-logs?${query}`
-  );
+  if (params.action)   query.set("action",   params.action);
+  if (params.entity)   query.set("entity",   params.entity);
+  if (params.userId)   query.set("userId",   params.userId);
+  if (params.dateFrom) query.set("dateFrom", params.dateFrom);
+  if (params.dateTo)   query.set("dateTo",   params.dateTo);
+  return fetchWithAuth<AuditLogListResponse>(`/admin/audit-logs?${query}`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Appointments Endpoint (Admin view)
-// ─────────────────────────────────────────────────────────────────────────────
+// Appointments
 
-/** PUT /admin/appointments — All appointments with full filters (Admin only). */
 export async function getAdminAppointments(
   params: AdminAppointmentParams = {}
-): Promise<PaginatedResponse<Appointment>> {
+): Promise<AdminAppointmentListResponse> {
   const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
-  query.set("limit", String(params.limit ?? 10));
-  if (params.status) query.set("status", params.status);
-  if (params.search) query.set("search", params.search);
+  query.set("page",  String(params.page  ?? 1));
+  query.set("limit", String(params.limit ?? 25));
+  if (params.status)   query.set("status",   params.status);
+  if (params.search)   query.set("search",   params.search);
   if (params.dateFrom) query.set("dateFrom", params.dateFrom);
-  if (params.dateTo) query.set("dateTo", params.dateTo);
+  if (params.dateTo)   query.set("dateTo",   params.dateTo);
+  return fetchWithAuth<AdminAppointmentListResponse>(`/admin/appointments?${query}`);
+}
 
-  return fetchWithAuth<PaginatedResponse<Appointment>>(
-    `/admin/appointments?${query}`
+export async function updateAdminAppointmentStatus(
+  appointmentId: string,
+  status: "PENDING" | "APPROVED" | "COMPLETED" | "CANCELLED" | "REJECTED"
+): Promise<{ appointment: AdminAppointment; message: string }> {
+  return fetchWithAuth<{ appointment: AdminAppointment; message: string }>(
+    `/admin/appointments/${appointmentId}/status`,
+    { method: "PATCH", body: JSON.stringify({ status }) }
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Doctor Approval Endpoints
-// ─────────────────────────────────────────────────────────────────────────────
+// Patients
+
+export async function getAdminPatients(
+  params: AdminPatientParams = {}
+): Promise<AdminPatientListResponse> {
+  const query = new URLSearchParams();
+  query.set("page",  String(params.page  ?? 1));
+  query.set("limit", String(params.limit ?? 20));
+  if (params.search !== undefined)   query.set("search",   params.search);
+  if (params.isActive !== undefined) query.set("isActive", String(params.isActive));
+  return fetchWithAuth<AdminPatientListResponse>(`/admin/patients?${query}`);
+}
+
+// Doctor Approval
 
 export interface ApproveDoctorResult {
   doctor: { id: string; firstName: string; lastName: string; approvalStatus: string };
   message: string;
 }
 
-/** PUT /admin/doctors/:id/approve — Approve a doctor application. */
 export async function approveDoctor(doctorId: string): Promise<ApproveDoctorResult> {
-  return fetchWithAuth<ApproveDoctorResult>(`/admin/doctors/${doctorId}/approve`, {
-    method: "PUT",
-  });
+  return fetchWithAuth<ApproveDoctorResult>(`/admin/doctors/${doctorId}/approve`, { method: "PUT" });
 }
 
-/** PUT /admin/doctors/:id/reject — Reject a doctor application with optional reason. */
 export async function rejectDoctor(
   doctorId: string,
   rejectionReason?: string

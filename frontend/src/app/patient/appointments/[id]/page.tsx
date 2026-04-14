@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -93,7 +93,8 @@ function ReviewModal({
     setSubmitting(true);
     setError("");
     try {
-      await submitReview({ appointmentId, rating, comment: comment.trim() || undefined });
+      const trimmed = comment.trim();
+      await submitReview({ appointmentId, rating, comment: trimmed });
       onDone();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to submit review.");
@@ -174,19 +175,45 @@ export default function AppointmentDetailPage() {
   const [showReview, setShowReview]   = useState(false);
   const [reviewed, setReviewed]       = useState(false);
 
-  async function load() {
-    setLoading(true);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getAppointmentById(id);
       setAppointment(res);
     } catch {
-      setAppointment(null);
+      if (!silent) setAppointment(null);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }
+  }, [id]);
 
-  useEffect(() => { load(); }, [id]);
+  // Initial fetch
+  useEffect(() => { load(); }, [load]);
+
+  // Poll every 10s when appointment is still pending
+  useEffect(() => {
+    const isPending = (appointment?.status ?? "").toLowerCase() === "pending";
+    if (!isPending) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(() => {
+      if (document.visibilityState === "visible") load(true);
+    }, 10_000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [appointment?.status, load]);
+
+  // Re-fetch when tab becomes visible again
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") load(true);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
+
 
   async function handleCancel() {
     if (!appointment || !confirm("Cancel this appointment?")) return;
@@ -224,11 +251,12 @@ export default function AppointmentDetailPage() {
     );
   }
 
-  const cfg    = STATUS_CONFIG[appointment.status] ?? STATUS_CONFIG.pending!;
+  const statusKey   = (appointment.status ?? "").toLowerCase();
+  const cfg    = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.pending!;
   const doc    = getDoctorInfo(appointment);
   const slot   = appointment.slot as any;
-  const isCancellable = appointment.status === "pending" || appointment.status === "approved";
-  const isCompleted   = appointment.status === "completed";
+  const isCancellable = statusKey === "pending" || statusKey === "approved";
+  const isCompleted   = statusKey === "completed";
 
   return (
     <>
@@ -252,12 +280,33 @@ export default function AppointmentDetailPage() {
         <div className="mx-auto max-w-2xl space-y-5">
 
           {/* Status banner */}
-          <div className={`flex items-center gap-3 rounded-2xl border px-5 py-4 ${cfg.badge}`}>
-            <div className={`h-3 w-3 shrink-0 rounded-full ${cfg.dot}`} />
-            <div>
-              <p className="font-semibold">Appointment {cfg.label}</p>
-              <p className="text-xs opacity-75">ID: {appointment.id.slice(0, 8).toUpperCase()}</p>
+          <div className={`flex items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${cfg.badge}`}>
+            <div className="flex items-center gap-3">
+              {statusKey === "pending" ? (
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className={`inline-flex h-3 w-3 rounded-full ${cfg.dot}`} />
+                </span>
+              ) : (
+                <div className={`h-3 w-3 shrink-0 rounded-full ${cfg.dot}`} />
+              )}
+              <div>
+                <p className="font-semibold">Appointment {cfg.label}</p>
+                <p className="text-xs opacity-75">
+                  {statusKey === "pending"
+                    ? "Awaiting doctor confirmation — auto-refreshing"
+                    : `ID: ${appointment.id.slice(0, 8).toUpperCase()}`}
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => load()}
+              className="flex items-center gap-1.5 rounded-lg border border-current/20 bg-white/50 px-3 py-1.5 text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Refresh
+            </button>
           </div>
 
           {/* Doctor card */}
