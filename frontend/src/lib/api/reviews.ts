@@ -30,12 +30,17 @@ export async function submitReview(
 
 /** GET /reviews/doctor/:doctorId — Get all reviews for a doctor (public). */
 export async function getDoctorReviews(doctorId: string): Promise<Review[]> {
-  return fetchWithAuth<Review[]>(`/reviews/doctor/${doctorId}`);
+  const res = await fetchWithAuth<{ reviews: Review[] } | Review[]>(`/reviews/doctor/${doctorId}`);
+  // Backend returns { reviews: [...] } — unwrap it
+  if (Array.isArray(res)) return res;
+  return (res as any).reviews ?? [];
 }
 
 /** GET /reviews/my — Get reviews submitted by the logged-in patient. */
 export async function getMyReviews(): Promise<Review[]> {
-  return fetchWithAuth<Review[]>("/reviews/my");
+  const res = await fetchWithAuth<{ reviews: Review[] } | Review[]>("/reviews/my");
+  if (Array.isArray(res)) return res;
+  return (res as any).reviews ?? [];
 }
 
 /** DELETE /reviews/:id — Delete a review (Patient or Admin). */

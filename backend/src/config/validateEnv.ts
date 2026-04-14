@@ -6,21 +6,21 @@
 export const validateEnv = (): void => {
   const required: Record<string, string> = {
     // Database
-    DATABASE_URL:   "PostgreSQL connection string",
+    DATABASE_URL: "PostgreSQL connection string",
     // Auth
-    JWT_SECRET:     "JWT signing secret",
+    JWT_SECRET: "JWT signing secret",
     // Frontend (used for email redirect links)
-    FRONTEND_URL:   "Frontend base URL (e.g. http://localhost:3000)",
+    FRONTEND_URL: "Frontend base URL (e.g. http://localhost:3000)",
   };
 
   // Email and S3 vars are optional in development
   const productionOnly: Record<string, string> = {
-    GMAIL_USER:        "Gmail address for sending emails",
-    GMAIL_APP_PASSWORD:"Gmail app password",
-    AWS_REGION:        "AWS region for S3",
+    GMAIL_USER: "Gmail address for sending emails",
+    GMAIL_APP_PASSWORD: "Gmail app password",
+    AWS_REGION: "AWS region for S3",
     AWS_ACCESS_KEY_ID: "AWS access key",
     AWS_SECRET_ACCESS_KEY: "AWS secret key",
-    AWS_S3_BUCKET_NAME:"S3 bucket name",
+    AWS_S3_BUCKET_NAME: "S3 bucket name",
   };
 
   const missing: string[] = [];

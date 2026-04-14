@@ -6,13 +6,15 @@ import type { Patient, PaginatedResponse } from "@/types";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PatientProfilePayload {
+  firstName?: string;
+  lastName?: string;
   name?: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: "male" | "female" | "other";
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: "male" | "female" | "other";
   address?: string;
   bloodGroup?: string;
-  allergies?: string[];
+  profileImageUrl?: string;
 }
 
 export interface PatientListParams {

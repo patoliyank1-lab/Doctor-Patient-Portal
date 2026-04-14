@@ -14,6 +14,12 @@ export interface NotificationListParams {
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Internal shape returned by this backend endpoint
+interface NotificationListResponse {
+  notifications: Notification[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 /** GET /notifications — Get the current user's notifications. */
 export async function getNotifications(
   params: NotificationListParams = {}
@@ -22,9 +28,14 @@ export async function getNotifications(
   query.set("page", String(params.page ?? 1));
   query.set("limit", String(params.limit ?? 20));
 
-  return fetchWithAuth<PaginatedResponse<Notification>>(
-    `/notifications?${query}`
-  );
+  const res = await fetchWithAuth<NotificationListResponse>(`/notifications?${query}`);
+  return {
+    data: res.notifications ?? [],
+    total: res.pagination?.total ?? 0,
+    page: res.pagination?.page ?? 1,
+    limit: res.pagination?.limit ?? 20,
+    totalPages: res.pagination?.totalPages ?? 1,
+  };
 }
 
 /** Helper: GET /notifications?limit=x — Get recent notifications. */

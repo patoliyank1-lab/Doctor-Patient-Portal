@@ -1,5 +1,5 @@
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
-import type { User, AuthResponse } from "@/types";
+import type { User, AuthUser } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Payloads
@@ -28,16 +28,16 @@ export interface LoginPayload {
 /** POST /auth/register — Register a new patient or doctor account. */
 export async function register(
   payload: RegisterPayload
-): Promise<AuthResponse> {
-  return fetchWithAuth<AuthResponse>("/auth/register", {
+): Promise<AuthUser> {
+  return fetchWithAuth<AuthUser>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 /** POST /auth/login — Log in and receive HttpOnly cookies. */
-export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  return fetchWithAuth<AuthResponse>("/auth/login", {
+export async function login(payload: LoginPayload): Promise<AuthUser> {
+  return fetchWithAuth<AuthUser>("/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });

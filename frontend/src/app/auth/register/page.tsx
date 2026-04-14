@@ -730,8 +730,7 @@ export default function RegisterPage() {
       });
 
       // 2) Auto-login to get auth cookies
-      const loginRes = await login({ email: form.email, password: form.password });
-      const authUser: AuthUser = loginRes.data;
+      const authUser = await login({ email: form.email, password: form.password });
       setUser(authUser);
 
       // 3) Create role-specific profile

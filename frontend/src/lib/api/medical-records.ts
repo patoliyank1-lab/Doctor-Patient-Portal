@@ -23,6 +23,12 @@ export interface RecordListParams {
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Internal shape returned by this backend endpoint
+interface RecordListResponse {
+  records: MedicalRecord[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 /**
  * POST /medical-records — Upload a new medical record.
  * The file itself should already be uploaded to S3 via presigned URL.
@@ -46,9 +52,14 @@ export async function getMyRecords(
   query.set("limit", String(params.limit ?? 10));
   if (params.type) query.set("type", params.type);
 
-  return fetchWithAuth<PaginatedResponse<MedicalRecord>>(
-    `/medical-records/my?${query}`
-  );
+  const res = await fetchWithAuth<RecordListResponse>(`/medical-records/my?${query}`);
+  return {
+    data: res.records ?? [],
+    total: res.pagination?.total ?? 0,
+    page: res.pagination?.page ?? 1,
+    limit: res.pagination?.limit ?? 10,
+    totalPages: res.pagination?.totalPages ?? 1,
+  };
 }
 
 /**
@@ -64,9 +75,14 @@ export async function getPatientRecords(
   query.set("limit", String(params.limit ?? 10));
   if (params.type) query.set("type", params.type);
 
-  return fetchWithAuth<PaginatedResponse<MedicalRecord>>(
-    `/medical-records/patient/${patientId}?${query}`
-  );
+  const res = await fetchWithAuth<RecordListResponse>(`/medical-records/patient/${patientId}?${query}`);
+  return {
+    data: res.records ?? [],
+    total: res.pagination?.total ?? 0,
+    page: res.pagination?.page ?? 1,
+    limit: res.pagination?.limit ?? 10,
+    totalPages: res.pagination?.totalPages ?? 1,
+  };
 }
 
 /** GET /medical-records/:id — Get a single medical record by ID. */

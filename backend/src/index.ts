@@ -16,9 +16,11 @@ const port = process.env.PORT ?? 4000;
 
 // ── CORS — must come before helmet and all routes
 // Allows the Next.js dev server (port 3000) to make credentialed requests
-const allowedOrigins = [
-  process.env.FRONTEND_URL ?? "http://localhost:3000",
-];
+// Support comma-separated list: "http://localhost:3000,http://192.168.0.117:3000"
+const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:3000")
+  .split(",")
+  .map((u) => u.trim())
+  .filter(Boolean);
 app.use(
   cors({
     origin: (origin, callback) => {

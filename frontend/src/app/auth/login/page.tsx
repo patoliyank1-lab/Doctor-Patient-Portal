@@ -22,7 +22,6 @@ import { login } from "@/lib/api/auth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { ApiRequestError } from "@/lib/fetch-with-auth";
-import type { AuthUser } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -43,8 +42,7 @@ function LoginForm() {
 
   async function onSubmit(data: LoginFormData) {
     try {
-      const res = await login(data);
-      const authUser: AuthUser = res.data;
+      const authUser = await login(data);
       setUser(authUser);
       toast.success(`Welcome back, ${authUser.email}!`);
       const roleLower = authUser.role.toLowerCase();

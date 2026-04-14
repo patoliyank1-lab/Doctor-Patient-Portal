@@ -37,19 +37,28 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Read the access token cookie set by the backend
-  const token =
-    request.cookies.get("mediconnect_token")?.value ??
-    request.cookies.get("accessToken")?.value;
+  const accessToken =
+    request.cookies.get("accessToken")?.value ??
+    request.cookies.get("mediconnect_token")?.value;
 
-  const payload = token ? decodeJwt(token) : null;
+  // Also read the refresh token — if it exists & is not expired we treat the
+  // user as authenticated (fetchWithAuth will silently refresh the access token
+  // client-side). This prevents redirect-to-login after the 15-min access
+  // token rolls over mid-session.
+  const refreshToken = request.cookies.get("refreshToken")?.value;
 
-  // Check if token is expired
-  const isAuthenticated =
-    payload !== null && payload.exp * 1000 > Date.now();
+  const accessPayload  = accessToken  ? decodeJwt(accessToken)  : null;
+  const refreshPayload = refreshToken ? decodeJwt(refreshToken) : null;
 
-  // JWT role is uppercase (Prisma enum: "PATIENT", "DOCTOR", "ADMIN")
-  // ROLE_DASHBOARD / ROLE_PREFIX_MAP use lowercase keys — normalise here.
-  const role = isAuthenticated ? payload!.role.toLowerCase() : null;
+  const accessValid  = accessPayload  !== null && accessPayload.exp  * 1000 > Date.now();
+  const refreshValid = refreshPayload !== null && refreshPayload.exp * 1000 > Date.now();
+
+  // Authenticated = valid access token OR valid refresh token
+  const isAuthenticated = accessValid || refreshValid;
+
+  // Derive role from whichever token is valid (prefer access token)
+  const payload = accessValid ? accessPayload : (refreshValid ? refreshPayload : null);
+  const role = payload ? payload.role.toLowerCase() : null;
 
   // ── Protected routes (/patient, /doctor, /admin) ─────────────────────────
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>

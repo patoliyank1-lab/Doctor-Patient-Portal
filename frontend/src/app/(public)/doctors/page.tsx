@@ -46,12 +46,9 @@ interface BackendPagination {
   totalPages: number;
 }
 
-interface DoctorsApiEnvelope {
-  success: boolean;
-  data: {
-    doctors: BackendDoctor[];
-    pagination: BackendPagination;
-  };
+interface DoctorsApiData {
+  doctors: BackendDoctor[];
+  pagination: BackendPagination;
 }
 
 async function fetchDoctors(params: {
@@ -66,13 +63,13 @@ async function fetchDoctors(params: {
   if (params.search) query.set("search", params.search);
   if (params.specialization) query.set("specialization", params.specialization);
 
-  const res = await fetchWithAuth<DoctorsApiEnvelope>(`/doctors?${query}`, {
+  const res = await fetchWithAuth<DoctorsApiData>(`/doctors?${query}`, {
     _skipRefresh: true, // Public page — no auth needed
   } as Parameters<typeof fetchWithAuth>[1]);
 
   return {
-    doctors: res?.data?.doctors ?? [],
-    pagination: res?.data?.pagination ?? {
+    doctors: res?.doctors ?? [],
+    pagination: res?.pagination ?? {
       total: 0, page: 1, limit: params.limit, totalPages: 1,
     },
   };

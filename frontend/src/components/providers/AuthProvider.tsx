@@ -26,9 +26,6 @@ import { ROUTES } from "@/lib/constants";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import type { AuthUser } from "@/types";
 
-interface MeResponse {
-  data: AuthUser;
-}
 
 // How often to silently re-validate the session in the background (ms)
 const REVALIDATION_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
@@ -42,19 +39,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Core hydration helper ──────────────────────────────────────────────────
   const hydrate = useCallback(async () => {
     try {
-      const res = await fetchWithAuth<MeResponse>("/auth/me");
-      if (res?.data) {
-        const user: AuthUser = {
-          ...res.data,
-          role: (res.data.role as string).toLowerCase() as AuthUser["role"],
-        };
-        setUser(user);
+      const user = await fetchWithAuth<AuthUser>("/auth/me", {
+        // Skip the 401→refresh cycle during hydration.
+        // _silentOn401 makes fetchWithAuth return null on 401 instead of
+        // throwing — so "not logged in" produces zero console noise.
+        _skipRefresh: true,
+        _silentOn401: true,
+      });
+      if (user?.id) {
+        setUser({
+          ...user,
+          role: (user.role as string).toLowerCase() as AuthUser["role"],
+        });
       } else {
         clearUser();
       }
     } catch {
-      // 401 → fetchWithAuth tried refresh automatically; if it reaches here,
-      // both tokens are expired → clearUser (session-expired event also fires)
+      // Any unexpected error (network, 5xx) → clear user silently
       clearUser();
     }
   }, [setUser, clearUser]);

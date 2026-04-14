@@ -23,7 +23,24 @@ const nextConfig = {
     ],
   },
 
-  // Allow cross-origin requests from backend in dev
+  allowedDevOrigins: ['localhost', '192.168.0.117'],
+
+  /**
+   * Proxy all /api/v1/* requests through Next.js → backend.
+   * The browser NEVER makes a cross-origin request to localhost:4000,
+   * so CORS is completely bypassed — works from any hostname.
+   */
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${backendUrl}/api/v1/:path*`,
+      },
+    ];
+  },
+
+  // Security headers
   async headers() {
     return [
       {

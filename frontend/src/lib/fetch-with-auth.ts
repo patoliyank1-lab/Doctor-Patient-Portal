@@ -49,6 +49,12 @@ export class ApiRequestError extends Error {
 interface FetchWithAuthOptions extends RequestInit {
   /** Internal: prevents retried requests from triggering another refresh. */
   _skipRefresh?: boolean;
+  /**
+   * When true combined with _skipRefresh, a 401 response returns null
+   * instead of throwing — useful for auth hydration checks where
+   * "not logged in" is a perfectly valid non-error state.
+   */
+  _silentOn401?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,9 +87,18 @@ export async function fetchWithAuth<T = unknown>(
   const { _skipRefresh = isAuthEndpoint, ...fetchOptions } = options;
 
   // ── 2. Build full URL ─────────────────────────────────────────────────────
+  // On the browser: API_BASE_URL may be a relative path (e.g. "/api/v1") which
+  //   goes through the Next.js rewrites proxy → no CORS issue.
+  // On the server (SSR/RSC): relative URLs don't work, so we call the backend
+  //   directly using BACKEND_URL (server-only env var, not exposed to browser).
+  const resolvedBase =
+    typeof window === "undefined" && API_BASE_URL.startsWith("/")
+      ? `${process.env.BACKEND_URL ?? "http://localhost:4000"}${API_BASE_URL}`
+      : API_BASE_URL;
+
   const url = endpoint.startsWith("http")
     ? endpoint
-    : `${API_BASE_URL}${endpoint}`;
+    : `${resolvedBase}${endpoint}`;
 
   const method = (fetchOptions.method ?? "GET").toUpperCase();
 
@@ -139,7 +154,11 @@ export async function fetchWithAuth<T = unknown>(
       response = await fetch(url, {
         ...fetchOptions,
         headers,
-        credentials: "include",
+        // On the server we forward cookies manually via the "cookie" header above.
+        // Using credentials: "include" on SSR causes Next.js to auto-set
+        // cache: "no-store", blowing away the data cache and causing repeated calls.
+        // On the browser we still need credentials: "include" for HttpOnly cookies.
+        credentials: typeof window === "undefined" ? "same-origin" : "include",
       });
     } catch {
       throw new ApiRequestError(
@@ -149,16 +168,23 @@ export async function fetchWithAuth<T = unknown>(
     }
 
     // ── 6. 401 → silent token refresh ─────────────────────────────────────
-    if (response.status === 401 && !_skipRefresh) {
-      const refreshSucceeded = await ensureTokenRefreshed();
-      if (refreshSucceeded) {
-        return fetchWithAuth<T>(endpoint, { ...options, _skipRefresh: true });
-      } else {
-        dispatchAuthExpired();
-        throw new ApiRequestError(
-          "Your session has expired. Please log in again.",
-          401
-        );
+    if (response.status === 401) {
+      // If caller opted into silent mode (e.g. auth hydration check),
+      // simply return null — "not logged in" is not an error.
+      if (_skipRefresh && (options as FetchWithAuthOptions)._silentOn401) {
+        return null as T;
+      }
+      if (!_skipRefresh) {
+        const refreshSucceeded = await ensureTokenRefreshed();
+        if (refreshSucceeded) {
+          return fetchWithAuth<T>(endpoint, { ...options, _skipRefresh: true });
+        } else {
+          dispatchAuthExpired();
+          throw new ApiRequestError(
+            "Your session has expired. Please log in again.",
+            401
+          );
+        }
       }
     }
 
@@ -203,8 +229,22 @@ export async function fetchWithAuth<T = unknown>(
       return undefined as T;
     }
 
-    // ── 11. Success — parse JSON ──────────────────────────────────────────
-    return response.json() as T;
+    // ── 11. Success — parse JSON and unwrap the backend envelope ─────────────
+    // Every backend success response is shaped:
+    //   { success: true, message: string, data: T, errors: null }
+    // We automatically unwrap `.data` so callers receive `T` directly.
+    const body = await response.json();
+    if (
+      body !== null &&
+      typeof body === "object" &&
+      "success" in body &&
+      body.success === true &&
+      "data" in body
+    ) {
+      return body.data as T;
+    }
+    // Fallback: return as-is for non-envelope shaped responses
+    return body as T;
   })();
 
   // Register the in-flight promise so duplicate GETs are collapsed
@@ -238,7 +278,11 @@ async function ensureTokenRefreshed(): Promise<boolean> {
 
 async function callRefreshEndpoint(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+    const resolvedBase =
+      typeof window === "undefined" && API_BASE_URL.startsWith("/")
+        ? `${process.env.BACKEND_URL ?? "http://localhost:4000"}${API_BASE_URL}`
+        : API_BASE_URL;
+    const res = await fetch(`${resolvedBase}/auth/refresh-token`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

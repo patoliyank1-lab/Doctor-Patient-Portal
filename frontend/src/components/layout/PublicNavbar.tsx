@@ -10,7 +10,7 @@
  * • Logged in      → avatar + role badge + dropdown (Dashboard, Sign out)
  */
 
-import { useState } from "react";
+import { useState, type ElementType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -52,7 +52,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin",
 };
 
-const ROLE_ICON: Record<UserRole, React.ElementType> = {
+const ROLE_ICON: Record<UserRole, ElementType> = {
   patient: User,
   doctor: Stethoscope,
   admin: ShieldCheck,

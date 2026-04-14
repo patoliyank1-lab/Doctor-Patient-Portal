@@ -28,6 +28,12 @@ export interface DoctorListParams {
 // Public / Auth Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Internal response shape from this backend endpoint
+interface DoctorListResponse {
+  doctors: Doctor[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 /** GET /doctors — List all approved doctors. Supports search, filter, pagination. */
 export async function getDoctors(
   params: DoctorListParams = {}
@@ -39,7 +45,16 @@ export async function getDoctors(
   if (params.specialization) query.set("specialization", params.specialization);
   if (params.status) query.set("status", params.status);
 
-  return fetchWithAuth<PaginatedResponse<Doctor>>(`/doctors?${query}`);
+  const res = await fetchWithAuth<DoctorListResponse>(`/doctors?${query}`);
+
+  // Normalise to the standard PaginatedResponse shape used everywhere in the app
+  return {
+    data: res.doctors ?? [],
+    total: res.pagination?.total ?? 0,
+    page: res.pagination?.page ?? 1,
+    limit: res.pagination?.limit ?? 10,
+    totalPages: res.pagination?.totalPages ?? 1,
+  };
 }
 
 /** GET /doctors/:id — Get a single doctor's public profile. */

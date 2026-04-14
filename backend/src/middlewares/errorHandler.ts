@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from "express";
 import { formattedError } from "../utils/ApiResponse";
+import { Logger } from "../utils/logger.js";
 
 export const errorHandler: ErrorRequestHandler = (
   err,
@@ -17,10 +18,15 @@ export const errorHandler: ErrorRequestHandler = (
     Array.isArray(err.errors) && err.errors.every((e: unknown) => typeof e === "string")
       ? (err.errors as string[])
       : null;
+
+  // req.log is attached by winLogger middleware — fall back to module Logger
+  // if the error occurred before that middleware ran (e.g. CORS errors)
+  const log = req.log ?? Logger;
+
   if (statusCode >= 500) {
-    req.log.error(err);
+    log.error(err);
   } else {
-    req.log.warn(`${statusCode} - ${message}`); // highlight error by bold red color
+    log.warn(`${statusCode} - ${message}`);
   }
   formattedError(res, statusCode, message, errors);
 };

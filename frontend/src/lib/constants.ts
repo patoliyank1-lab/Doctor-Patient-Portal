@@ -8,8 +8,8 @@
 
 export const USER_ROLES = {
   PATIENT: "patient",
-  DOCTOR:  "doctor",
-  ADMIN:   "admin",
+  DOCTOR: "doctor",
+  ADMIN: "admin",
 } as const;
 
 export type UserRoleKey = keyof typeof USER_ROLES;
@@ -17,20 +17,20 @@ export type UserRoleKey = keyof typeof USER_ROLES;
 // ── Appointment Status ────────────────────────────────────────────────────────
 
 export const APPOINTMENT_STATUS = {
-  PENDING:     "pending",
-  APPROVED:    "approved",
-  REJECTED:    "rejected",
-  COMPLETED:   "completed",
-  CANCELLED:   "cancelled",
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
   RESCHEDULED: "rescheduled",
 } as const;
 
 // ── Doctor Status ─────────────────────────────────────────────────────────────
 
 export const DOCTOR_STATUS = {
-  PENDING:   "pending",
-  APPROVED:  "approved",
-  REJECTED:  "rejected",
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
   SUSPENDED: "suspended",
 } as const;
 
@@ -38,16 +38,16 @@ export const DOCTOR_STATUS = {
 
 export const RECORD_TYPES = {
   PRESCRIPTION: "prescription",
-  LAB_REPORT:   "lab_report",
-  IMAGING:      "imaging",
-  OTHER:        "other",
+  LAB_REPORT: "lab_report",
+  IMAGING: "imaging",
+  OTHER: "other",
 } as const;
 
 // ── Slot Status ───────────────────────────────────────────────────────────────
 
 export const SLOT_STATUS = {
   AVAILABLE: "available",
-  BOOKED:    "booked",
+  BOOKED: "booked",
 } as const;
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -55,45 +55,45 @@ export const SLOT_STATUS = {
 
 export const ROUTES = {
   // ── Public
-  HOME:                 "/",
-  ABOUT:                "/about",
-  DOCTORS:              "/doctors",
+  HOME: "/",
+  ABOUT: "/about",
+  DOCTORS: "/doctors",
   DOCTOR_PUBLIC_PROFILE: (id: string) => `/doctors/${id}`,
-  PUBLIC_DOCTOR:         (id: string) => `/doctors/${id}`,
+  PUBLIC_DOCTOR: (id: string) => `/doctors/${id}`,
 
   // ── Auth
-  LOGIN:           "/auth/login",
-  REGISTER:        "/auth/register",
-  VERIFY_EMAIL:    "/auth/verify-email",
+  LOGIN: "/auth/login",
+  REGISTER: "/auth/register",
+  VERIFY_EMAIL: "/auth/verify-email",
   FORGOT_PASSWORD: "/auth/forgot-password",
-  RESET_PASSWORD:  "/auth/reset-password",
+  RESET_PASSWORD: "/auth/reset-password",
 
   // ── Patient
-  PATIENT_DASHBOARD:          "/patient/dashboard",
-  PATIENT_DOCTORS:            "/patient/doctors",
-  PATIENT_BOOK:               (doctorId: string) => `/patient/doctors/${doctorId}/book`,
-  PATIENT_APPOINTMENTS:       "/patient/appointments",
+  PATIENT_DASHBOARD: "/patient/dashboard",
+  PATIENT_DOCTORS: "/patient/doctors",
+  PATIENT_BOOK: (doctorId: string) => `/patient/doctors/${doctorId}/book`,
+  PATIENT_APPOINTMENTS: "/patient/appointments",
   PATIENT_APPOINTMENT_DETAIL: (id: string) => `/patient/appointments/${id}`,
-  PATIENT_PROFILE:            "/patient/profile",
-  PATIENT_RECORDS:            "/patient/records",
-  PATIENT_REVIEWS:            "/patient/reviews",
-  PATIENT_NOTIFICATIONS:      "/patient/notifications",
+  PATIENT_PROFILE: "/patient/profile",
+  PATIENT_RECORDS: "/patient/records",
+  PATIENT_REVIEWS: "/patient/reviews",
+  PATIENT_NOTIFICATIONS: "/patient/notifications",
 
   // ── Doctor
-  DOCTOR_DASHBOARD:           "/doctor/dashboard",
-  DOCTOR_APPOINTMENTS:        "/doctor/appointments",
-  DOCTOR_APPOINTMENT_DETAIL:  (id: string) => `/doctor/appointments/${id}`,
-  DOCTOR_AVAILABILITY:        "/doctor/availability",
-  DOCTOR_PATIENT_DETAIL:      (id: string) => `/doctor/patients/${id}`,
-  DOCTOR_PROFILE:             "/doctor/profile",
-  DOCTOR_NOTIFICATIONS:       "/doctor/notifications",
+  DOCTOR_DASHBOARD: "/doctor/dashboard",
+  DOCTOR_APPOINTMENTS: "/doctor/appointments",
+  DOCTOR_APPOINTMENT_DETAIL: (id: string) => `/doctor/appointments/${id}`,
+  DOCTOR_AVAILABILITY: "/doctor/availability",
+  DOCTOR_PATIENT_DETAIL: (id: string) => `/doctor/patients/${id}`,
+  DOCTOR_PROFILE: "/doctor/profile",
+  DOCTOR_NOTIFICATIONS: "/doctor/notifications",
 
   // ── Admin
-  ADMIN_DASHBOARD:    "/admin/dashboard",
-  ADMIN_DOCTORS:      "/admin/doctors",
-  ADMIN_PATIENTS:     "/admin/patients",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  ADMIN_DOCTORS: "/admin/doctors",
+  ADMIN_PATIENTS: "/admin/patients",
   ADMIN_APPOINTMENTS: "/admin/appointments",
-  ADMIN_AUDIT_LOGS:   "/admin/audit-logs",
+  ADMIN_AUDIT_LOGS: "/admin/audit-logs",
 
   // ── Misc
   UNAUTHORIZED: "/unauthorized",
@@ -103,8 +103,8 @@ export const ROUTES = {
 
 export const ROLE_DASHBOARD: Record<string, string> = {
   patient: ROUTES.PATIENT_DASHBOARD,
-  doctor:  ROUTES.DOCTOR_DASHBOARD,
-  admin:   ROUTES.ADMIN_DASHBOARD,
+  doctor: ROUTES.DOCTOR_DASHBOARD,
+  admin: ROUTES.ADMIN_DASHBOARD,
 };
 
 // ── Middleware route matching ──────────────────────────────────────────────────
@@ -119,8 +119,8 @@ export const AUTH_PREFIXES = ["/auth"] as const;
 /** Role to its allowed route prefix (trailing slash required — see PROTECTED_PREFIXES) */
 export const ROLE_PREFIX_MAP: Record<string, string> = {
   patient: "/patient/",
-  doctor:  "/doctor/",
-  admin:   "/admin/",
+  doctor: "/doctor/",
+  admin: "/admin/",
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -149,13 +149,13 @@ export const ALLOWED_UPLOAD_TYPES = [
 // ── Days of Week (for bulk slot creation) ────────────────────────────────────
 
 export const DAYS_OF_WEEK = [
-  { value: 0, label: "Sunday"    },
-  { value: 1, label: "Monday"    },
-  { value: 2, label: "Tuesday"   },
+  { value: 0, label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
   { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday"  },
-  { value: 5, label: "Friday"    },
-  { value: 6, label: "Saturday"  },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
 ] as const;
 
 // ── Blood Groups ──────────────────────────────────────────────────────────────
@@ -165,18 +165,18 @@ export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] a
 // ── Gender Options ────────────────────────────────────────────────────────────
 
 export const GENDER_OPTIONS = [
-  { value: "male",   label: "Male"   },
+  { value: "male", label: "Male" },
   { value: "female", label: "Female" },
-  { value: "other",  label: "Other"  },
+  { value: "other", label: "Other" },
 ] as const;
 
 // ── Record Type Options ────────────────────────────────────────────────────────
 
 export const RECORD_TYPE_OPTIONS = [
   { value: "prescription", label: "Prescription" },
-  { value: "lab_report",   label: "Lab Report"   },
-  { value: "imaging",      label: "Imaging"      },
-  { value: "other",        label: "Other"        },
+  { value: "lab_report", label: "Lab Report" },
+  { value: "imaging", label: "Imaging" },
+  { value: "other", label: "Other" },
 ] as const;
 
 // ── Specializations ───────────────────────────────────────────────────────────

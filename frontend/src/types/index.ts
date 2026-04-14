@@ -26,18 +26,25 @@ export interface Doctor {
   id: string;
   userId: string;
   user: User;
-  specialization: string;
-  qualifications: string[];
-  experience: number;          // years
-  bio: string;
-  consultationFee: number;
+  firstName: string;
+  lastName: string;
+  specializations: string[];
+  specialization?: string;      // legacy alias (single)
+  qualification?: string;
+  qualifications?: string[];    // legacy alias
+  experienceYears?: number;
+  experience?: number;          // legacy alias
+  bio?: string;
+  consultationFee?: number;
   clinicName?: string;
   clinicAddress?: string;
-  phone: string;
-  status: DoctorStatus;
-  avgRating: number;
-  totalReviews: number;
-  profileImage?: string;
+  phone?: string;
+  approvalStatus?: DoctorStatus;
+  status?: DoctorStatus;        // legacy alias
+  profileImageUrl?: string;
+  profileImage?: string;        // legacy alias
+  avgRating?: number;
+  totalReviews?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,13 +55,15 @@ export interface Patient {
   id: string;
   userId: string;
   user: User;
-  dateOfBirth: string;         // ISO date string
-  gender: "male" | "female" | "other";
-  phone: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;        // ISO date string
+  gender?: "male" | "female" | "other";
+  phone?: string;
   address?: string;
   bloodGroup?: string;
-  allergies?: string[];
-  profileImage?: string;
+  profileImageUrl?: string;
+  profileImage?: string;       // legacy alias
   createdAt: string;
   updatedAt: string;
 }
@@ -109,6 +118,7 @@ export interface MedicalRecord {
   uploadedBy: string;          // userId
   uploaderRole: UserRole;
   title: string;
+  description?: string;        // optional note about the record
   type: RecordType;
   fileUrl: string;
   fileSize: number;            // bytes
@@ -137,9 +147,10 @@ export interface Review {
   patientId: string;
   patient: Patient;
   doctorId: string;
+  doctor: Doctor;
   appointmentId: string;
   rating: number;              // 1–5
-  comment: string;
+  comment?: string;
   createdAt: string;
   updatedAt: string;
 }

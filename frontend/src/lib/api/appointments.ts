@@ -14,14 +14,25 @@ export interface ReschedulePayload {
   slotId: string;
 }
 
+export type AppointmentStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "completed"
+  | "cancelled";
+
 export interface AppointmentListParams {
   page?: number;
   limit?: number;
-  status?: string;
+  status?: AppointmentStatus;
   search?: string;
   doctorId?: string;
   patientId?: string;
+  /** YYYY-MM-DD — used by /appointments/my (patient/doctor endpoint) */
+  date?: string;
+  /** YYYY-MM-DD — used by /appointments (admin endpoint) */
   dateFrom?: string;
+  /** YYYY-MM-DD — used by /appointments (admin endpoint) */
   dateTo?: string;
 }
 
@@ -39,6 +50,12 @@ export async function bookAppointment(
   });
 }
 
+// Internal shape returned by this backend endpoint
+interface AppointmentListResponse {
+  appointments: Appointment[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 /**
  * GET /appointments/my — Get the logged-in user's appointments.
  * Works for both patients and doctors.
@@ -51,17 +68,23 @@ export async function getMyAppointments(
   query.set("limit", String(params.limit ?? 10));
   if (params.status) query.set("status", params.status);
   if (params.search) query.set("search", params.search);
+  if (params.date) query.set("date", params.date);
 
-  return fetchWithAuth<PaginatedResponse<Appointment>>(
-    `/appointments/my?${query}`
-  );
+  const res = await fetchWithAuth<AppointmentListResponse>(`/appointments/my?${query}`);
+  return {
+    data: res.appointments ?? [],
+    total: res.pagination?.total ?? 0,
+    page: res.pagination?.page ?? 1,
+    limit: res.pagination?.limit ?? 10,
+    totalPages: res.pagination?.totalPages ?? 1,
+  };
 }
 
-/** Helper: GET /appointments/my?status=upcoming — Get upcoming appointments. */
+/** Helper: GET /appointments/my?status=approved — Get upcoming (approved) appointments. */
 export async function getUpcomingAppointments(
   limit = 5
 ): Promise<PaginatedResponse<Appointment>> {
-  return getMyAppointments({ limit, status: "upcoming" });
+  return getMyAppointments({ limit, status: "approved" });
 }
 
 /** Helper: Get the total count of pending appointments. */
@@ -76,10 +99,26 @@ export async function getTotalCount(): Promise<number> {
   return res.total;
 }
 
+/** Helper: Get the total count of completed appointments. */
+export async function getCompletedCount(): Promise<number> {
+  const res = await getMyAppointments({ limit: 1, status: "completed" });
+  return res.total;
+}
+
+/** Helper: Get the total count of cancelled appointments. */
+export async function getCancelledCount(): Promise<number> {
+  const res = await getMyAppointments({ limit: 1, status: "cancelled" });
+  return res.total;
+}
+
 /** PUT /appointments/:id/cancel — Cancel an appointment (Patient). */
-export async function cancelAppointment(id: string): Promise<Appointment> {
+export async function cancelAppointment(
+  id: string,
+  cancelReason?: string
+): Promise<Appointment> {
   return fetchWithAuth<Appointment>(`/appointments/${id}/cancel`, {
     method: "PUT",
+    body: JSON.stringify({ cancelReason: cancelReason?.trim() || undefined }),
   });
 }
 
