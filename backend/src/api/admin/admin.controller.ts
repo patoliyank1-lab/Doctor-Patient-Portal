@@ -7,6 +7,7 @@ import {
   adminListAppointmentsQuerySchema,
   doctorIdParamSchema,
   listAuditLogsQuerySchema,
+  listDoctorsAdminQuerySchema,
   listUsersQuerySchema,
   updateDoctorApprovalSchema,
   userIdParamSchema,
@@ -130,6 +131,25 @@ export const getAppointmentAnalytics = asyncHandler(async (req, res) => {
     const result = await adminService.getAppointmentAnalytics();
     formattedResponse(res, 200, result, "Appointment analytics fetched successfully");
   } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+});
+
+/**
+ * @route GET /api/v1/admin/doctors
+ * @access Admin
+ */
+export const listDoctors = asyncHandler(async (req, res) => {
+  try {
+    if (!req.user?.userId) throw new AppError("Unauthorized", 401);
+    const query = listDoctorsAdminQuerySchema.parse(req.query);
+    const result = await adminService.listAllDoctors(query);
+    formattedResponse(res, 200, result, "Doctors fetched successfully");
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new AppError("Validation failed", 400, { errors: error.issues.map((i) => i.message) });
+    }
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
   }

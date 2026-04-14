@@ -12,6 +12,7 @@ import {
   getDashboard,
   getDoctorAnalytics,
   getPatientAnalytics,
+  listDoctors,
   listUsers,
   rejectDoctor,
 } from "./admin.controller";
@@ -26,7 +27,8 @@ router.put("/users/:id/activate",          authenticate, authorize(Role.ADMIN), 
 router.get("/audit-logs",                  authenticate, authorize(Role.ADMIN), getAuditLogs);
 router.get("/appointments",                authenticate, authorize(Role.ADMIN), getAllAppointments);
 
-// Doctor approval
+// Doctor management
+router.get("/doctors",                     authenticate, authorize(Role.ADMIN), listDoctors);
 router.put("/doctors/:id/approve",         authenticate, authorize(Role.ADMIN), approveDoctor);
 router.put("/doctors/:id/reject",          authenticate, authorize(Role.ADMIN), rejectDoctor);
 

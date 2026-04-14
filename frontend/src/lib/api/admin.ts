@@ -3,10 +3,10 @@ import type {
   User,
   AuditLog,
   Appointment,
-  DashboardSummary,
-  PatientGrowthStat,
-  DoctorSpecializationStat,
-  AppointmentTrendStat,
+  AdminDashboardData,
+  PatientAnalyticsData,
+  DoctorAnalyticsData,
+  AppointmentAnalyticsData,
   PaginatedResponse,
 } from "@/types";
 
@@ -20,6 +20,13 @@ export interface UserListParams {
   search?: string;
   role?: string;
   isActive?: boolean;
+}
+
+export interface AdminDoctorListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  approvalStatus?: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
 }
 
 export interface AuditLogParams {
@@ -42,30 +49,40 @@ export interface AdminAppointmentParams {
 // Analytics Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** GET /admin/dashboard — Full platform analytics summary. */
-export async function getDashboard(): Promise<DashboardSummary> {
-  return fetchWithAuth<DashboardSummary>("/admin/dashboard");
+/** GET /admin/dashboard — Full platform stats + recent appointments. */
+export async function getDashboard(): Promise<AdminDashboardData> {
+  return fetchWithAuth<AdminDashboardData>("/admin/dashboard");
 }
 
-/** GET /admin/analytics/patients — Monthly patient registration growth stats. */
-export async function getPatientAnalytics(): Promise<PatientGrowthStat[]> {
-  return fetchWithAuth<PatientGrowthStat[]>("/admin/analytics/patients");
+/** GET /admin/analytics/patients — Patient totals + monthly growth + top patients. */
+export async function getPatientAnalytics(): Promise<PatientAnalyticsData> {
+  return fetchWithAuth<PatientAnalyticsData>("/admin/analytics/patients");
 }
 
-/** GET /admin/analytics/doctors — Doctor count grouped by specialization. */
-export async function getDoctorAnalytics(): Promise<
-  DoctorSpecializationStat[]
-> {
-  return fetchWithAuth<DoctorSpecializationStat[]>("/admin/analytics/doctors");
+/** GET /admin/analytics/doctors — Doctor totals + by specialization + top doctors. */
+export async function getDoctorAnalytics(): Promise<DoctorAnalyticsData> {
+  return fetchWithAuth<DoctorAnalyticsData>("/admin/analytics/doctors");
 }
 
-/** GET /admin/analytics/appointments — Monthly appointment trend data. */
-export async function getAppointmentAnalytics(): Promise<
-  AppointmentTrendStat[]
-> {
-  return fetchWithAuth<AppointmentTrendStat[]>(
-    "/admin/analytics/appointments"
-  );
+/** GET /admin/analytics/appointments — Totals + rates + by status + monthly trend. */
+export async function getAppointmentAnalytics(): Promise<AppointmentAnalyticsData> {
+  return fetchWithAuth<AppointmentAnalyticsData>("/admin/analytics/appointments");
+}
+
+/** GET /admin/doctors — List ALL doctors (any approval status) with pagination + filters. */
+export async function getAdminDoctors(
+  params: AdminDoctorListParams = {}
+): Promise<{
+  doctors: import("@/types").Doctor[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 1));
+  query.set("limit", String(params.limit ?? 15));
+  if (params.search) query.set("search", params.search);
+  if (params.approvalStatus) query.set("approvalStatus", params.approvalStatus);
+
+  return fetchWithAuth(`/admin/doctors?${query}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,7 +141,7 @@ export async function getAuditLogs(
 // Appointments Endpoint (Admin view)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** GET /admin/appointments — All appointments with full filters (Admin only). */
+/** PUT /admin/appointments — All appointments with full filters (Admin only). */
 export async function getAdminAppointments(
   params: AdminAppointmentParams = {}
 ): Promise<PaginatedResponse<Appointment>> {
@@ -139,4 +156,31 @@ export async function getAdminAppointments(
   return fetchWithAuth<PaginatedResponse<Appointment>>(
     `/admin/appointments?${query}`
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Doctor Approval Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ApproveDoctorResult {
+  doctor: { id: string; firstName: string; lastName: string; approvalStatus: string };
+  message: string;
+}
+
+/** PUT /admin/doctors/:id/approve — Approve a doctor application. */
+export async function approveDoctor(doctorId: string): Promise<ApproveDoctorResult> {
+  return fetchWithAuth<ApproveDoctorResult>(`/admin/doctors/${doctorId}/approve`, {
+    method: "PUT",
+  });
+}
+
+/** PUT /admin/doctors/:id/reject — Reject a doctor application with optional reason. */
+export async function rejectDoctor(
+  doctorId: string,
+  rejectionReason?: string
+): Promise<ApproveDoctorResult> {
+  return fetchWithAuth<ApproveDoctorResult>(`/admin/doctors/${doctorId}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ rejectionReason }),
+  });
 }

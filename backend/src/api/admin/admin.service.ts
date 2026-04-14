@@ -6,6 +6,7 @@ import type {
   AdminListAppointmentsQuery,
   ListAuditLogsQuery,
   ListUsersQuery,
+  ListDoctorsAdminQuery,
 } from "./admin.validators";
 
 // ────────────────────────────────────────────────────────────
@@ -57,6 +58,58 @@ export const getDashboard = async () => {
       reviews:        { total: totalReviews, averageRating: avgRating._avg.rating ? Math.round(avgRating._avg.rating * 10) / 10 : null },
       recentAppointments,
     };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new UnknownError(error);
+  }
+};
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/doctors — list all doctors (any status)
+// ────────────────────────────────────────────────────────────
+
+export const listAllDoctors = async (query: ListDoctorsAdminQuery) => {
+  try {
+    const where: any = {};
+    if (query.approvalStatus) where.approvalStatus = query.approvalStatus;
+    if (query.search) {
+      const term = query.search;
+      where.OR = [
+        { firstName: { contains: term, mode: "insensitive" } },
+        { lastName:  { contains: term, mode: "insensitive" } },
+        { user: { email: { contains: term, mode: "insensitive" } } },
+      ];
+    }
+
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+
+    const [total, doctors] = await Promise.all([
+      prisma.doctor.count({ where }),
+      prisma.doctor.findMany({
+        where, skip, take,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          specializations: true,
+          qualification: true,
+          experienceYears: true,
+          bio: true,
+          profileImageUrl: true,
+          consultationFee: true,
+          approvalStatus: true,
+          rejectionReason: true,
+          createdAt: true,
+          updatedAt: true,
+          user: { select: { email: true, isActive: true } },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    return { doctors, pagination: { total, page: query.page, limit: query.limit, totalPages } };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

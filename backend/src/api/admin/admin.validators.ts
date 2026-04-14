@@ -96,3 +96,17 @@ export const updateDoctorApprovalSchema = z.object({
 });
 
 export type UpdateDoctorApprovalInput = z.infer<typeof updateDoctorApprovalSchema>;
+
+// ────────────────────────────────────────────────────────────
+// Query — GET /admin/doctors
+// ────────────────────────────────────────────────────────────
+
+export const listDoctorsAdminQuerySchema = z.object({
+  ...paginationSchema,
+  approvalStatus: z
+    .enum(["PENDING", "APPROVED", "REJECTED", "SUSPENDED"])
+    .optional(),
+  search: z.string().trim().max(100).optional(),
+});
+
+export type ListDoctorsAdminQuery = z.infer<typeof listDoctorsAdminQuerySchema>;

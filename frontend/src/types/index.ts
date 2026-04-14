@@ -24,8 +24,9 @@ export type DoctorStatus = "pending" | "approved" | "rejected" | "suspended";
 
 export interface Doctor {
   id: string;
-  userId: string;
-  user: User;
+  userId?: string;
+  user?: User & { email?: string; isActive?: boolean };
+  email?: string;               // flattened from user.email in some responses
   firstName: string;
   lastName: string;
   specializations: string[];
@@ -36,15 +37,13 @@ export interface Doctor {
   experience?: number;          // legacy alias
   bio?: string;
   consultationFee?: number;
-  clinicName?: string;
-  clinicAddress?: string;
-  phone?: string;
   approvalStatus?: DoctorStatus;
   status?: DoctorStatus;        // legacy alias
   profileImageUrl?: string;
   profileImage?: string;        // legacy alias
   avgRating?: number;
   totalReviews?: number;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -157,6 +156,7 @@ export interface Review {
 
 // ── Admin Analytics ───────────────────────────────────────────────────────────
 
+/** @deprecated — kept for backward compat; use AdminDashboardData instead */
 export interface DashboardSummary {
   totalPatients: number;
   totalDoctors: number;
@@ -167,21 +167,96 @@ export interface DashboardSummary {
   revenueTotal: number;
 }
 
+/** @deprecated — kept for backward compat; use PatientAnalyticsData instead */
 export interface PatientGrowthStat {
-  month: string;               // e.g. "Jan 2024"
+  month: string;
   count: number;
 }
 
+/** @deprecated — kept for backward compat; use DoctorAnalyticsData instead */
 export interface DoctorSpecializationStat {
   specialization: string;
   count: number;
 }
 
+/** @deprecated — kept for backward compat; use AppointmentAnalyticsData instead */
 export interface AppointmentTrendStat {
-  month: string;               // e.g. "Jan 2024"
+  month: string;
   total: number;
   completed: number;
   cancelled: number;
+}
+
+// ── Real backend response shapes ─────────────────────────────────────────────
+
+/** Shape of GET /admin/dashboard */
+export interface AdminDashboardData {
+  users: {
+    total: number;
+    patients: number;
+    doctors: number;
+  };
+  doctors: {
+    total: number;
+    pending: number;
+    approved: number;
+  };
+  appointments: {
+    total: number;
+    pending: number;
+    approved: number;
+    completed: number;
+    cancelled: number;
+    rejected: number;
+  };
+  medicalRecords: { total: number };
+  reviews: { total: number; averageRating: number | null };
+  recentAppointments: {
+    id: string;
+    status: string;
+    scheduledAt: string;
+    createdAt: string;
+    patient: { firstName: string; lastName: string };
+    doctor:  { firstName: string; lastName: string; specializations: string[] };
+  }[];
+}
+
+/** Shape of GET /admin/analytics/patients */
+export interface PatientAnalyticsData {
+  totals: { total: number; active: number; newThisMonth: number };
+  monthlyGrowth: { month: string; count: number }[];
+  topPatientsByAppointments: {
+    patient: { id: string; firstName: string; lastName: string } | null;
+    appointmentCount: number;
+  }[];
+}
+
+/** Shape of GET /admin/analytics/doctors */
+export interface DoctorAnalyticsData {
+  totals: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    newThisMonth: number;
+  };
+  bySpecialization: {
+    specialization: string;
+    doctorCount: number;
+    averageRating: number | null;
+  }[];
+  topDoctorsByCompletedAppointments: {
+    doctor: { id: string; firstName: string; lastName: string; specializations: string[] } | null;
+    completedAppointments: number;
+  }[];
+}
+
+/** Shape of GET /admin/analytics/appointments */
+export interface AppointmentAnalyticsData {
+  totals: { total: number; completedThisMonth: number; cancelledThisMonth: number };
+  rates: { completionRate: number; cancellationRate: number };
+  byStatus: { status: string; count: number }[];
+  monthlyTrend: { month: string; count: number }[];
 }
 
 // ── Audit Log ─────────────────────────────────────────────────────────────────
