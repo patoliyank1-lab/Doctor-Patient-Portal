@@ -496,7 +496,7 @@ export const updateAppointmentStatusForDoctor = async (
     const result = await prisma.$transaction(async (tx) => {
       const appt = await tx.appointment.findFirst({
         where: { id: appointmentId, doctorId, deletedAt: null },
-        select: { id: true, status: true },
+        select: { id: true, status: true, slotId: true },
       });
       if (!appt) throw new AppError("Appointment not found", 404);
 
@@ -518,6 +518,14 @@ export const updateAppointmentStatusForDoctor = async (
         },
         select: doctorAppointmentSelect,
       });
+
+      // Free up the availability slot if rejected
+      if (targetStatus === AppointmentStatus.REJECTED) {
+        await tx.availabilitySlot.update({
+          where: { id: appt.slotId },
+          data: { isBooked: false },
+        });
+      }
 
       return updated as any;
     });

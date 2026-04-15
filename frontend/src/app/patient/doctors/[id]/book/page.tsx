@@ -206,7 +206,7 @@ export default function BookAppointmentPage() {
             Your appointment with <span className="font-semibold text-slate-800">Dr. {fullName}</span> has been confirmed.
           </p>
           <p className="mb-8 text-sm text-slate-400">
-            {formatDate(selectedDate)} &middot; {formatTime(selectedSlot?.startTime ?? "")}
+            {formatDate(selectedDate)} &middot; {formatTime(selectedSlot?.startTime ?? "")} – {formatTime(selectedSlot?.endTime ?? "")}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
@@ -355,7 +355,7 @@ export default function BookAppointmentPage() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {availableSlots.map((slot) => (
                     <button
                       key={slot.id}
@@ -367,7 +367,7 @@ export default function BookAppointmentPage() {
                           : "border-slate-200 bg-white text-slate-700"
                       }`}
                     >
-                      {formatTime(slot.startTime)}
+                      {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
                     </button>
                   ))}
                 </div>

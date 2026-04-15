@@ -657,16 +657,28 @@ export const updateAppointmentStatus = async (
   status: AppStatus
 ) => {
   try {
-    const appt = await prisma.appointment.findFirst({
-      where: { id: appointmentId, deletedAt: null },
-      select: { id: true, status: true, patientId: true, patient: { select: { firstName: true, lastName: true } } },
-    });
-    if (!appt) throw new AppError("Appointment not found", 404);
+    const result = await prisma.$transaction(async (tx) => {
+      const appt = await tx.appointment.findFirst({
+        where: { id: appointmentId, deletedAt: null },
+        select: { id: true, status: true, slotId: true },
+      });
+      if (!appt) throw new AppError("Appointment not found", 404);
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { status },
-      select: { id: true, status: true, scheduledAt: true },
+      const updated = await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { status },
+        select: { id: true, status: true, scheduledAt: true },
+      });
+
+      // Free up the availability slot if rejected or cancelled
+      if (status === "REJECTED" || status === "CANCELLED") {
+        await tx.availabilitySlot.update({
+          where: { id: appt.slotId },
+          data: { isBooked: false },
+        });
+      }
+
+      return { updated, oldStatus: appt.status };
     });
 
     void logAudit({
@@ -674,11 +686,11 @@ export const updateAppointmentStatus = async (
       action: "UPDATE_APPOINTMENT_STATUS",
       entity: "appointment",
       entityId: appointmentId,
-      oldValue: { status: appt.status },
+      oldValue: { status: result.oldStatus },
       newValue: { status },
     });
 
-    return { appointment: updated, message: `Appointment status updated to ${status}` };
+    return { appointment: result.updated, message: `Appointment status updated to ${status}` };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);
