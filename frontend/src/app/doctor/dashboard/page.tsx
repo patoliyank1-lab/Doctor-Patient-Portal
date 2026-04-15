@@ -92,11 +92,11 @@ function getPatientInitials(apt: Appointment): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { dot: string; badge: string; label: string; icon: React.ElementType }> = {
-  pending:   { dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200",   label: "Pending",   icon: Hourglass },
-  approved:  { dot: "bg-blue-500",    badge: "bg-blue-50 text-blue-700 border-blue-200",      label: "Approved",  icon: CalendarCheck },
+  pending: { dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Pending", icon: Hourglass },
+  approved: { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700 border-blue-200", label: "Approved", icon: CalendarCheck },
   completed: { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Completed", icon: CheckCircle2 },
-  cancelled: { dot: "bg-red-400",     badge: "bg-red-50 text-red-700 border-red-200",         label: "Cancelled", icon: XCircle },
-  rejected:  { dot: "bg-rose-400",    badge: "bg-rose-50 text-rose-700 border-rose-200",      label: "Rejected",  icon: XCircle },
+  cancelled: { dot: "bg-red-400", badge: "bg-red-50 text-red-700 border-red-200", label: "Cancelled", icon: XCircle },
+  rejected: { dot: "bg-rose-400", badge: "bg-rose-50 text-rose-700 border-rose-200", label: "Rejected", icon: XCircle },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,17 +127,17 @@ function StatusBadge({ status }: { status: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function DoctorDashboardPage() {
-  const [doctor, setDoctor]           = useState<Doctor | null>(null);
-  const [todayApts, setTodayApts]     = useState<Appointment[]>([]);
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [todayApts, setTodayApts] = useState<Appointment[]>([]);
   const [upcomingApts, setUpcomingApts] = useState<Appointment[]>([]);
   const [pendingApts, setPendingApts] = useState<Appointment[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [pending, setPending]         = useState(0);
-  const [completed, setCompleted]     = useState(0);
-  const [totalApts, setTotalApts]     = useState(0);
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [error, setError]             = useState<string | null>(null);
+  const [pending, setPending] = useState(0);
+  const [completed, setCompleted] = useState(0);
+  const [totalApts, setTotalApts] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -158,13 +158,13 @@ export default function DoctorDashboardPage() {
           getMyAppointments({ limit: 3, status: "pending" }),
         ]);
 
-      if (docRes.status      === "fulfilled") setDoctor(docRes.value);
-      if (todayRes.status    === "fulfilled") setTodayApts((todayRes.value.data ?? []) as Appointment[]);
+      if (docRes.status === "fulfilled") setDoctor(docRes.value);
+      if (todayRes.status === "fulfilled") setTodayApts((todayRes.value.data ?? []) as Appointment[]);
       if (upcomingRes.status === "fulfilled") setUpcomingApts((upcomingRes.value.data ?? []) as Appointment[]);
-      if (pendRes.status     === "fulfilled") setPending(pendRes.value.total ?? 0);
-      if (compRes.status     === "fulfilled") setCompleted(compRes.value.total ?? 0);
-      if (totalRes.status    === "fulfilled") setTotalApts(totalRes.value.total ?? 0);
-      if (notifsRes.status   === "fulfilled") setNotifications((notifsRes.value.data ?? []) as Notification[]);
+      if (pendRes.status === "fulfilled") setPending(pendRes.value.total ?? 0);
+      if (compRes.status === "fulfilled") setCompleted(compRes.value.total ?? 0);
+      if (totalRes.status === "fulfilled") setTotalApts(totalRes.value.total ?? 0);
+      if (notifsRes.status === "fulfilled") setNotifications((notifsRes.value.data ?? []) as Notification[]);
       if (pendingListRes.status === "fulfilled") setPendingApts((pendingListRes.value.data ?? []) as Appointment[]);
     } catch {
       setError("Failed to load dashboard data. Please refresh.");
@@ -279,7 +279,7 @@ export default function DoctorDashboardPage() {
       )}
 
       {/* ── Approval Status Banner ────────────────────────────────────────── */}
-      {!loading && doctor && doctor.approvalStatus !== "approved" && (
+      {!loading && doctor && doctor.approvalStatus === "approved" && (
         <div
           role="status"
           aria-label="Profile approval status"
@@ -287,7 +287,7 @@ export default function DoctorDashboardPage() {
         >
           <Activity className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
           <div>
-            <p className="font-semibold text-amber-800">Profile Under Review</p>
+            < p className="font-semibold text-amber-800">Profile Under Review</p>
             <p className="text-sm text-amber-700">
               Your doctor profile is pending admin approval. You can still manage your schedule, but you
               won&apos;t appear in patient searches until approved.
@@ -304,29 +304,29 @@ export default function DoctorDashboardPage() {
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : stats.map((s) => (
-              <Link
-                key={s.label}
-                href={s.href}
-                aria-label={`${s.label}: ${s.value}`}
-                className={cn(
-                  "group rounded-2xl border bg-white p-5 shadow-sm",
-                  "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                  s.border
-                )}
-              >
-                <div className="flex items-start justify-between">
-                  <div className={cn("inline-flex h-10 w-10 items-center justify-center rounded-xl", s.bg)}>
-                    {s.icon}
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-300 transition-colors group-hover:text-slate-500" aria-hidden="true" />
+            <Link
+              key={s.label}
+              href={s.href}
+              aria-label={`${s.label}: ${s.value}`}
+              className={cn(
+                "group rounded-2xl border bg-white p-5 shadow-sm",
+                "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                s.border
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div className={cn("inline-flex h-10 w-10 items-center justify-center rounded-xl", s.bg)}>
+                  {s.icon}
                 </div>
-                <p className="mt-3 text-xs font-medium text-slate-500">{s.label}</p>
-                <p className={cn("mt-1 text-3xl font-extrabold", s.color)}>{s.value ?? "—"}</p>
-                {s.trend && (
-                  <p className="mt-1 text-[11px] font-medium text-slate-400">{s.trend}</p>
-                )}
-              </Link>
-            ))}
+                <ArrowUpRight className="h-4 w-4 text-slate-300 transition-colors group-hover:text-slate-500" aria-hidden="true" />
+              </div>
+              <p className="mt-3 text-xs font-medium text-slate-500">{s.label}</p>
+              <p className={cn("mt-1 text-3xl font-extrabold", s.color)}>{s.value ?? "—"}</p>
+              {s.trend && (
+                <p className="mt-1 text-[11px] font-medium text-slate-400">{s.trend}</p>
+              )}
+            </Link>
+          ))}
       </div>
 
       {/* ── Main Content Grid ─────────────────────────────────────────────── */}
@@ -386,7 +386,7 @@ export default function DoctorDashboardPage() {
                 <ul className="divide-y divide-slate-100" role="list">
                   {todayApts.map((apt) => {
                     const slot = apt.slot as any;
-                    const cfg  = STATUS_CONFIG[apt.status] ?? STATUS_CONFIG.pending;
+                    const cfg = STATUS_CONFIG[apt.status] ?? STATUS_CONFIG.pending;
                     return (
                       <li key={apt.id}>
                         <Link
@@ -658,8 +658,8 @@ export default function DoctorDashboardPage() {
                           doctor.approvalStatus === "approved"
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                             : doctor.approvalStatus === "rejected" || doctor.approvalStatus === "suspended"
-                            ? "border-red-200 bg-red-50 text-red-700"
-                            : "border-amber-200 bg-amber-50 text-amber-700"
+                              ? "border-red-200 bg-red-50 text-red-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
                         )}
                       >
                         {doctor.approvalStatus === "approved" ? (

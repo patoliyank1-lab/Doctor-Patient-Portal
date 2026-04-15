@@ -1,0 +1,77 @@
+##  public page
+- Home page 
+- about us page
+- doctors page - list of verified doctors with filtering options.
+- doctor profile page - detailed information about a specific doctor.
+- About us page.
+- login page - for both patients and doctors to access their respective portals.
+- registration page - for new patients and doctors to create an account.
+
+
+## Patient portal
+- Dashboard page:
+    - upcoming appointments
+    - past appointments
+    - notifications
+- find doctor page:
+    - search for doctors 
+    - view doctor profiles 
+    - appointment booking page
+- appointment management page:
+    - view and manage upcoming appointments
+    - cancel appointments
+- medical records page:
+    - view and manage medical records
+    - upload new medical records
+- My Reviews page:
+    - view and manage reviews for doctors
+    - write new reviews for doctors
+- Notifications page:
+    - view and manage notifications related to appointments, messages, and system updates
+- Profile management page:
+    - view and update personal information, medical history, and preferences
+
+## Doctor portal
+- Dashboard page:
+    - today's appointments
+    - pending appointments
+    - doctor's profile information
+    - notifications
+- Appointment management page:
+    - view and manage upcoming appointments
+    - accept or reject appointment requests
+    - reschedule appointments
+- Availability management page:
+    - set and update available time slots for appointments
+    - block off unavailable times
+- notifications page:
+    - view and manage notifications related to appointments, messages, and system updates
+- Profile management page:
+    - view and update personal information, qualifications, and experience
+
+## Admin portal
+- Dashboard page:
+    - overview of system statistics (number of doctors, patients, appointments, etc.)
+    - recent activities and notifications
+    - graphs and charts for data visualization
+- Doctor management page:
+    - view and manage doctor profiles
+    - verify doctor credentials
+    - approve or reject doctor registrations
+- Patient management page:
+    - view and manage patient profiles
+    - block or unblock patient accounts
+- Appointment management page:
+    - view and manage all appointments in the system
+- Audit Logs page:
+    - view and manage system audit logs for security and compliance purposes
+
+
+
+## Functionalities
+
+# public access
+- Home page: A welcoming landing page that provides an overview of the platform's services and features.
+- about us page: Information about the platform, its mission, vision, and team members.
+- Doctors page: A directory of verified doctors with filtering options based on specialization, location, and availability.
+- Doctor profile page: Detailed information about a specific doctor, including qualifications, experience, patient reviews, and contact information.

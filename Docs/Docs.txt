@@ -1,0 +1,342 @@
+PROJECT DOCUMENTATION
+==============================================
+SECTION 1: TECHNICAL STACK
+==============================================
+
+FRONTEND
+--------
+Framework       : Next.js (v16.x)
+Language        : TypeScript
+Styling         : Tailwind CSS, tailwind-merge, class-variance-authority
+UI Components   : Radix UI (Avatar, Checkbox, Dialog, Dropdown Menu, Label,
+                  Popover, Progress, Select, Separator, Slot, Switch, Tabs, Toast)
+Icons           : Lucide React
+Forms           : React Hook Form + Zod (validation)
+State Management: Zustand
+Data Fetching   : SWR (stale-while-revalidate)
+Charts          : Recharts
+Notifications   : Sonner
+Runtime         : React 18
+
+----------------------------------------------
+
+BACKEND
+-------
+Runtime         : Bun (with --watch for hot reload)
+Framework       : Express.js (v5.x)
+Language        : TypeScript
+Authentication  : JSON Web Token (JWT) + bcrypt (password hashing)
+                  Cookie Parser (session cookies)
+Validation      : Zod
+Security        : Helmet (HTTP headers), CORS, express-rate-limit
+Email Service   : Nodemailer
+File Storage    : AWS S3 (via @aws-sdk/client-s3 + s3-request-presigner)
+Logging         : Winston
+Unique IDs      : UUID
+Environment     : dotenv
+
+----------------------------------------------
+
+DATABASE
+--------
+Database        : PostgreSQL
+ORM             : Prisma (v7.x)
+DB Adapter      : @prisma/adapter-pg (pg driver)
+Migration Tool  : Prisma Migrate
+DB GUI          : Prisma Studio
+
+----------------------------------------------
+
+SUMMARY TABLE
+
+| Layer     | Technology                          |
+|-----------|-------------------------------------|
+| Frontend  | Next.js, TypeScript, Tailwind CSS   |
+| UI Lib    | Radix UI, Lucide React              |
+| State     | Zustand, SWR                        |
+| Forms     | React Hook Form + Zod               |
+| Backend   | Bun + Express.js + TypeScript       |
+| Auth      | JWT + bcrypt                        |
+| Storage   | AWS S3                              |
+| Email     | Nodemailer                          |
+| Security  | Helmet, CORS, Rate Limiter          |
+| Database  | PostgreSQL + Prisma ORM             |
+
+==============================================
+
+==============================================
+SECTION 2: WEBSITE PAGES
+==============================================
+
+Total Pages: 28
+
+----------------------------------------------
+
+A. PUBLIC PAGES (7 Pages)
+--------------------------
+
+  1. Home Page
+     - Landing page for the website
+
+  2. About Us Page
+     - Information about the platform and team
+
+  3. Contact Page
+     - Contact form and support details
+
+  4. Doctors Page
+     - List of all verified doctors
+     - Filtering options (specialty, location, etc.)
+
+  5. Doctor Profile Page
+     - Detailed information about a specific doctor
+     - Qualifications, experience, and reviews
+
+  6. Login Page
+     - Unified login for Patients and Doctors
+     - Access to respective portals after authentication
+
+  7. Registration Page
+     - New account creation for Patients and Doctors
+
+----------------------------------------------
+
+B. PATIENT PORTAL (7 Pages)
+-----------------------------
+
+  8. Dashboard Page
+     - Upcoming appointments overview
+     - Past appointments history
+     - Notifications summary
+
+  9. Find Doctor Page
+     - Search and filter doctors
+     - View doctor profiles
+     - Appointment booking interface
+
+ 10. Appointment Management Page
+     - View and manage upcoming appointments
+     - Cancel appointments
+
+ 11. Medical Records Page
+     - View and manage personal medical records
+     - Upload new medical records (via AWS S3)
+
+ 12. My Reviews Page
+     - View and manage submitted doctor reviews
+     - Write new reviews for doctors
+
+ 13. Notifications Page
+     - Notifications for appointments, messages, and system updates
+
+ 14. Profile Management Page
+     - View and update personal information
+     - Update medical history and preferences
+
+----------------------------------------------
+
+C. DOCTOR PORTAL (5 Pages)
+----------------------------
+
+ 15. Dashboard Page
+     - Today's appointments at a glance
+     - Pending appointment requests
+     - Doctor profile summary
+     - Notifications overview
+
+ 16. Appointment Management Page
+     - View and manage upcoming appointments
+     - Accept or reject appointment requests
+     - Reschedule appointments
+
+ 17. Availability Management Page
+     - Set and update available time slots
+     - Block off unavailable dates and times
+
+ 18. Notifications Page
+     - Notifications for appointments, messages, and system updates
+
+ 19. Profile Management Page
+     - View and update personal information
+     - Update qualifications and experience
+
+----------------------------------------------
+
+D. ADMIN PORTAL (5 Pages)
+---------------------------
+
+ 20. Dashboard Page
+     - System statistics overview (doctors, patients, appointments)
+     - Recent activities and notifications
+     - Data visualization via graphs and charts
+
+ 21. Doctor Management Page
+     - View and manage all doctor profiles
+     - Verify doctor credentials
+     - Approve or reject doctor registrations
+
+ 22. Patient Management Page
+     - View and manage all patient profiles
+     - Block or unblock patient accounts
+
+ 23. Appointment Management Page
+     - View and manage all appointments across the system
+
+ 24. Audit Logs Page
+     - View system audit logs
+     - Security and compliance monitoring
+
+----------------------------------------------
+
+PAGE COUNT SUMMARY
+
+| Portal          | Pages |
+|-----------------|-------|
+| Public Pages    |   7   |
+| Patient Portal  |   7   |
+| Doctor Portal   |   5   |
+| Admin Portal    |   5   |
+| TOTAL           |  24   |
+
+==============================================
+
+
+==============================================
+SECTION 3: FUNCTIONALITY
+==============================================
+
+----------------------------------------------
+A. AUTHENTICATION & AUTHORIZATION
+----------------------------------------------
+
+  - User registration for Patients and Doctors with form validation (Zod)
+  - Secure login with JWT-based authentication and HTTP-only cookies
+  - Role-based access control (RBAC) for Patient, Doctor, and Admin portals
+  - Password hashing using bcrypt
+  - Session management via Cookie Parser
+  - Rate limiting on auth endpoints to prevent brute-force attacks (express-rate-limit)
+  - Email verification on account registration (Nodemailer)
+  - Secure HTTP headers via Helmet
+
+----------------------------------------------
+B. PUBLIC FEATURES
+----------------------------------------------
+
+  - Browse and view a list of all verified doctors
+  - Filter doctors by specialty, location, or other criteria
+  - View detailed doctor profile (qualifications, experience, reviews)
+  - Contact form for user inquiries and support
+  - About Us information page
+  - Responsive design across all devices (Tailwind CSS)
+
+----------------------------------------------
+C. PATIENT PORTAL FEATURES
+----------------------------------------------
+
+  Appointments:
+  - Search for doctors using filters (name, specialty, availability)
+  - View doctor profiles and available time slots
+  - Book appointments with a selected doctor
+  - View upcoming and past appointments on the dashboard
+  - Cancel existing appointments
+  - Receive notifications for appointment confirmations and updates
+
+  Medical Records:
+  - Upload personal medical records (stored securely on AWS S3)
+  - View and manage uploaded medical records
+  - Presigned URL generation for secure file access
+
+  Reviews:
+  - Write reviews and ratings for doctors after appointments
+  - View previously submitted reviews
+  - Edit or manage existing reviews
+
+  Notifications:
+  - Real-time notifications for appointment status changes
+  - System and message notifications
+
+  Profile:
+  - View and update personal information
+  - Update medical history and health preferences
+  - Manage account settings
+
+----------------------------------------------
+D. DOCTOR PORTAL FEATURES
+----------------------------------------------
+
+  Dashboard:
+  - View today's scheduled appointments at a glance
+  - View pending appointment requests requiring action
+  - Quick access to profile information and notifications
+
+  Appointments:
+  - View all upcoming appointments
+  - Accept or reject incoming appointment requests from patients
+  - Reschedule existing appointments
+  - Receive notifications for new and updated appointments
+
+  Availability:
+  - Set weekly available time slots for patient bookings
+  - Update or modify existing availability
+  - Block off specific dates and times as unavailable
+
+  Profile:
+  - Update personal information (name, contact details)
+  - Update professional qualifications and experience
+  - Manage account settings
+
+  Notifications:
+  - Notifications for new appointment requests, messages, and system updates
+
+----------------------------------------------
+E. ADMIN PORTAL FEATURES
+----------------------------------------------
+
+  Dashboard:
+  - View real-time system statistics (total doctors, patients, appointments)
+  - Monitor recent platform activities
+  - Data visualizations via graphs and charts (Recharts)
+  - Overview of recent notifications and alerts
+
+  Doctor Management:
+  - View all doctor profiles registered on the platform
+  - Review and verify doctor credentials and documents
+  - Approve or reject new doctor registration requests
+  - Manage existing doctor accounts
+
+  Patient Management:
+  - View all patient profiles on the platform
+  - Block or unblock patient accounts for policy violations
+  - Monitor patient activity
+
+  Appointment Management:
+  - View all appointments across the entire system
+  - Monitor appointment statuses (pending, confirmed, cancelled, completed)
+
+  Audit Logs:
+  - View a full log of system activities for security monitoring
+  - Track user actions for compliance purposes
+  - Filter and search through audit entries
+
+----------------------------------------------
+F. SYSTEM-WIDE FEATURES
+----------------------------------------------
+
+  Security:
+  - HTTPS enforced with secure headers (Helmet)
+  - CORS policy configured for safe cross-origin requests
+  - Rate limiting on sensitive API endpoints
+  - Input validation on all forms (Zod - frontend & backend)
+  - Secure file storage with AWS S3 presigned URLs
+
+  Notifications:
+  - In-app notification system for all user roles
+  - Email notifications triggered by key events (Nodemailer)
+
+  Logging:
+  - Server-side structured logging using Winston
+  - Audit trail maintained for admin review
+  
+==============================================
+END OF DOCUMENTATION
+==============================================
