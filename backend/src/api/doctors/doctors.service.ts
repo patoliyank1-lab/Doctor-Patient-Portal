@@ -63,16 +63,34 @@ export const listApprovedDoctors = async (query: ListDoctorsQuery) => {
         ? { experienceYears: query.order }
         : { createdAt: query.order };
 
-    const [total, doctors] = await Promise.all([
+    const [total, rawDoctors] = await Promise.all([
       prisma.doctor.count({ where }),
       prisma.doctor.findMany({
         where,
         skip,
         take,
         orderBy,
-        select: doctorListSelect,
+        select: {
+          ...doctorListSelect,
+          reviews: { select: { rating: true } },
+        },
       }),
     ]);
+
+    const doctors = rawDoctors.map((doc) => {
+      const totalReviews = doc.reviews.length;
+      const avgRating =
+        totalReviews > 0
+          ? doc.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+          : 0;
+
+      const { reviews, ...doctorData } = doc;
+      return {
+        ...doctorData,
+        totalReviews,
+        avgRating,
+      };
+    });
 
     const totalPages = Math.max(1, Math.ceil(total / query.limit));
 
@@ -93,16 +111,31 @@ export const listApprovedDoctors = async (query: ListDoctorsQuery) => {
 
 export const getApprovedDoctorById = async (doctorId: string) => {
   try {
-    const doctor = await prisma.doctor.findFirst({
+    const rawDoctor = await prisma.doctor.findFirst({
       where: {
         id: doctorId,
         approvalStatus: DoctorApprovalStatus.APPROVED,
         user: { isActive: true, deletedAt: null },
       },
-      select: doctorDetailSelect,
+      select: {
+        ...doctorDetailSelect,
+        reviews: { select: { rating: true } },
+      },
     });
-    if (!doctor) throw new AppError("Doctor not found", 404);
-    return doctor;
+    if (!rawDoctor) throw new AppError("Doctor not found", 404);
+
+    const totalReviews = rawDoctor.reviews.length;
+    const avgRating =
+      totalReviews > 0
+        ? rawDoctor.reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+        : 0;
+
+    const { reviews, ...doctorData } = rawDoctor;
+    return {
+      ...doctorData,
+      totalReviews,
+      avgRating,
+    };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new UnknownError(error);

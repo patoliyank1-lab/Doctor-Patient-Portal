@@ -81,8 +81,8 @@ export async function fetchWithAuth<T = unknown>(
 ): Promise<T> {
   // ── 1. Auth endpoint check ────────────────────────────────────────────────
   const isAuthEndpoint =
-    endpoint.startsWith("/auth/") ||
-    endpoint.includes("/api/v1/auth/");
+    (endpoint.startsWith("/auth/") || endpoint.includes("/api/v1/auth/")) &&
+    !endpoint.includes("/auth/me");
 
   const { _skipRefresh = isAuthEndpoint, ...fetchOptions } = options;
 

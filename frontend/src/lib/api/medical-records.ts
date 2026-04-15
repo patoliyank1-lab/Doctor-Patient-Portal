@@ -25,8 +25,21 @@ export interface RecordListParams {
 
 // Internal shape returned by this backend endpoint
 interface RecordListResponse {
-  records: MedicalRecord[];
+  records: any[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
+// Map the backend record to the frontend interface
+function mapRecord(r: any): MedicalRecord {
+  // Infer mime type from extension since the backend doesn't store it
+  const isImage = r.fileUrl?.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
+  
+  return {
+    ...r,
+    type: r.fileType || r.type || "other",
+    fileSize: r.fileSizeBytes || r.fileSize || 0,
+    mimeType: r.mimeType || (isImage ? "image/jpeg" : "application/pdf"),
+  } as MedicalRecord;
 }
 
 /**
@@ -37,10 +50,18 @@ interface RecordListResponse {
 export async function uploadMedicalRecord(
   payload: UploadRecordPayload
 ): Promise<MedicalRecord> {
-  return fetchWithAuth<MedicalRecord>("/medical-records", {
+  const backendPayload = {
+    title: payload.title,
+    fileType: payload.type,
+    fileUrl: payload.fileUrl,
+    fileSizeBytes: payload.fileSize,
+  };
+
+  const res = await fetchWithAuth<any>("/medical-records", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(backendPayload),
   });
+  return mapRecord(res);
 }
 
 /** GET /medical-records/my — Get the logged-in patient's own records. */
@@ -50,11 +71,11 @@ export async function getMyRecords(
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 1));
   query.set("limit", String(params.limit ?? 10));
-  if (params.type) query.set("type", params.type);
+  if (params.type) query.set("fileType", params.type);
 
   const res = await fetchWithAuth<RecordListResponse>(`/medical-records/my?${query}`);
   return {
-    data: res.records ?? [],
+    data: (res.records ?? []).map(mapRecord),
     total: res.pagination?.total ?? 0,
     page: res.pagination?.page ?? 1,
     limit: res.pagination?.limit ?? 10,
@@ -73,11 +94,11 @@ export async function getPatientRecords(
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 1));
   query.set("limit", String(params.limit ?? 10));
-  if (params.type) query.set("type", params.type);
+  if (params.type) query.set("fileType", params.type);
 
   const res = await fetchWithAuth<RecordListResponse>(`/medical-records/patient/${patientId}?${query}`);
   return {
-    data: res.records ?? [],
+    data: (res.records ?? []).map(mapRecord),
     total: res.pagination?.total ?? 0,
     page: res.pagination?.page ?? 1,
     limit: res.pagination?.limit ?? 10,
@@ -87,7 +108,8 @@ export async function getPatientRecords(
 
 /** GET /medical-records/:id — Get a single medical record by ID. */
 export async function getRecordById(id: string): Promise<MedicalRecord> {
-  return fetchWithAuth<MedicalRecord>(`/medical-records/${id}`);
+  const res = await fetchWithAuth<any>(`/medical-records/${id}`);
+  return mapRecord(res);
 }
 
 /** DELETE /medical-records/:id — Soft-delete a medical record (Patient only). */

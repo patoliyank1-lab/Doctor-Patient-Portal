@@ -253,7 +253,7 @@ export default function PatientAppointmentsPage() {
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {formatDateTime(apt.slot?.date ?? apt.slot?.startTime ?? (apt as any).scheduledAt)}
+                          {formatDateTime(apt.scheduledAt ?? apt.slot?.date)}
                         </span>
                         {apt.reason && <span className="italic truncate max-w-[22ch]">{apt.reason}</span>}
                       </div>

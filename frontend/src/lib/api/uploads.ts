@@ -35,11 +35,12 @@ export async function getPresignedUrl(
   fileSizeBytes: number,
   folder: "profile-images" | "medical-records" = "medical-records"
 ): Promise<PresignedUrlResponse> {
-  const envelope = await fetchWithAuth<PresignedUrlEnvelope>("/uploads/presigned-url", {
+  const envelope = await fetchWithAuth<PresignedUrlResponse>("/uploads/presigned-url", {
     method: "POST",
     body: JSON.stringify({ fileName, fileType, fileSizeBytes, folder }),
   });
-  return envelope.data;
+  console.log(`[DEBUG] : ${JSON.stringify(envelope, null, 4)}`)
+  return envelope;
 }
 
 /**
@@ -73,20 +74,12 @@ export async function uploadToS3(
   presignedUrl: string,
   file: File
 ): Promise<void> {
-  // Graceful fallback for local development when real AWS credentials aren't set
-  if (presignedUrl.includes("test-bucket-nk1-00001")) {
-    console.warn(
-      "uploadToS3 bypassed: Using placeholder AWS credentials. " +
-      "Image upload simulated as success for local development."
-    );
-    return;
-  }
-
   const res = await fetch(presignedUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
     body: file,
   });
+  console.log("[Responce]", res)
 
   if (!res.ok) {
     throw new Error(`S3 upload failed with status ${res.status}`);

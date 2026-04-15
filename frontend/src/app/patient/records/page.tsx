@@ -108,19 +108,21 @@ export default function MedicalRecordsPage() {
     setUploadError("");
     try {
       // 1. Get presigned URL
-      const { uploadUrl, publicUrl } = await getPresignedUrl(
+      const temp = await getPresignedUrl(
         uploadFile.name,
         uploadFile.type,
         uploadFile.size,
         "medical-records"
       );
+
+      console.log(`[DEBUG] :  ${JSON.stringify(temp)}`)
       // 2. Upload to S3
-      await uploadToS3(uploadUrl, uploadFile);
+      await uploadToS3(temp.uploadUrl, uploadFile);
       // 3. Save metadata
       await uploadMedicalRecord({
         title: uploadTitle.trim(),
         type: uploadType,
-        fileUrl: publicUrl,
+        fileUrl: temp.publicUrl,
         fileSize: uploadFile.size,
         mimeType: uploadFile.type,
       });

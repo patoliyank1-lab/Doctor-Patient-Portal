@@ -17,11 +17,11 @@ export function PageContainer({
   ...props
 }: PageContainerProps) {
   return (
-    <div 
+    <div
       className={cn(
-        "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 space-y-6 md:space-y-8", 
+        "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 space-y-6 md:space-y-8",
         className
-      )} 
+      )}
       {...props}
     >
       {/* Header Section */}
@@ -46,7 +46,7 @@ export function PageContainer({
           )}
         </div>
       )}
-      
+
       {/* Main Content */}
       <div className="w-full">
         {children}

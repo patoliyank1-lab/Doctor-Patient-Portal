@@ -23,15 +23,15 @@ import type { Doctor } from "@/types";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MAX_IMAGE_MB  = 5;
+const MAX_IMAGE_MB = 5;
 const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const APPROVAL_CONFIG: Record<string, { color: string; label: string }> = {
-  PENDING:   { color: "border-amber-200 bg-amber-50 text-amber-800",   label: "Pending Approval" },
-  APPROVED:  { color: "border-emerald-200 bg-emerald-50 text-emerald-800", label: "Approved" },
-  REJECTED:  { color: "border-red-200 bg-red-50 text-red-800",         label: "Rejected" },
-  SUSPENDED: { color: "border-slate-200 bg-slate-50 text-slate-700",   label: "Suspended" },
+  PENDING: { color: "border-amber-200 bg-amber-50 text-amber-800", label: "Pending Approval" },
+  APPROVED: { color: "border-emerald-200 bg-emerald-50 text-emerald-800", label: "Approved" },
+  REJECTED: { color: "border-red-200 bg-red-50 text-red-800", label: "Rejected" },
+  SUSPENDED: { color: "border-slate-200 bg-slate-50 text-slate-700", label: "Suspended" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,23 +53,23 @@ function getFullName(d: Doctor | null): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ProfileForm {
-  firstName:       string;
-  lastName:        string;
+  firstName: string;
+  lastName: string;
   specializations: string[];
-  qualification:   string;
+  qualification: string;
   experienceYears: string;
-  bio:             string;
+  bio: string;
   consultationFee: string;
 }
 
 function defaultForm(doc?: Doctor | null): ProfileForm {
   return {
-    firstName:       doc?.firstName       ?? "",
-    lastName:        doc?.lastName        ?? "",
+    firstName: doc?.firstName ?? "",
+    lastName: doc?.lastName ?? "",
     specializations: doc?.specializations ?? [],
-    qualification:   doc?.qualification   ?? "",
+    qualification: doc?.qualification ?? "",
     experienceYears: String(doc?.experienceYears ?? ""),
-    bio:             doc?.bio             ?? "",
+    bio: doc?.bio ?? "",
     consultationFee: String(doc?.consultationFee ?? ""),
   };
 }
@@ -79,20 +79,20 @@ function defaultForm(doc?: Doctor | null): ProfileForm {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FormErrors {
-  firstName?:       string;
-  lastName?:        string;
+  firstName?: string;
+  lastName?: string;
   specializations?: string;
-  qualification?:   string;
+  qualification?: string;
   experienceYears?: string;
   consultationFee?: string;
 }
 
 function validate(form: ProfileForm): FormErrors {
   const errs: FormErrors = {};
-  if (!form.firstName.trim())           errs.firstName       = "First name is required.";
-  if (!form.lastName.trim())            errs.lastName        = "Last name is required.";
+  if (!form.firstName.trim()) errs.firstName = "First name is required.";
+  if (!form.lastName.trim()) errs.lastName = "Last name is required.";
   if (form.specializations.length === 0) errs.specializations = "Select at least one specialization.";
-  if (!form.qualification.trim())       errs.qualification   = "Qualification is required.";
+  if (!form.qualification.trim()) errs.qualification = "Qualification is required.";
   if (form.experienceYears !== "") {
     const n = Number(form.experienceYears);
     if (isNaN(n) || n < 0 || n > 80) errs.experienceYears = "Enter a valid number (0–80).";
@@ -109,24 +109,24 @@ function validate(form: ProfileForm): FormErrors {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function DoctorProfilePage() {
-  const [doctor,    setDoctor]    = useState<Doctor | null>(null);
-  const [isCreate,  setIsCreate]  = useState(false);
-  const [loading,   setLoading]   = useState(true);
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [isCreate, setIsCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
 
   // Edit mode
-  const [editing,   setEditing]   = useState(false);
-  const [saving,    setSaving]    = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Form
-  const [form, setForm]           = useState<ProfileForm>(defaultForm());
-  const [errors, setErrors]       = useState<FormErrors>({});
-  const [touched, setTouched]     = useState<Partial<Record<keyof ProfileForm, boolean>>>({});
+  const [form, setForm] = useState<ProfileForm>(defaultForm());
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof ProfileForm, boolean>>>({});
 
   // Avatar
-  const [avatarFile,    setAvatarFile]    = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [uploadingImg,  setUploadingImg]  = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch profile on mount ──────────────────────────────────────────────────
@@ -246,12 +246,12 @@ export default function DoctorProfilePage() {
 
       // ── Step 2: Build payload (only send changed / non-empty fields) ───────
       const payload: CreateDoctorProfilePayload = {
-        firstName:       form.firstName.trim(),
-        lastName:        form.lastName.trim(),
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
         specializations: form.specializations,
-        qualification:   form.qualification.trim() || undefined!,
+        qualification: form.qualification.trim() || undefined!,
         experienceYears: form.experienceYears !== "" ? Number(form.experienceYears) : undefined,
-        bio:             form.bio.trim() || undefined,
+        bio: form.bio.trim() || undefined,
         consultationFee: form.consultationFee !== "" ? Number(form.consultationFee) : undefined,
         // Only pass imageUrl in the main payload if the dedicated image endpoint wasn't used
         ...(imageUrl && isCreate ? { profileImageUrl: imageUrl } : {}),
@@ -278,10 +278,10 @@ export default function DoctorProfilePage() {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const avatarUrl     = avatarPreview ?? doctor?.profileImageUrl ?? doctor?.profileImage ?? null;
-  const approvalKey   = (doctor?.approvalStatus ?? "PENDING").toUpperCase();
-  const approvalCfg   = APPROVAL_CONFIG[approvalKey] ?? APPROVAL_CONFIG.PENDING!;
-  const isApproved    = approvalKey === "APPROVED";
+  const avatarUrl = avatarPreview ?? doctor?.profileImageUrl ?? doctor?.profileImage ?? null;
+  const approvalKey = (doctor?.approvalStatus ?? "PENDING").toUpperCase();
+  const approvalCfg = APPROVAL_CONFIG[approvalKey] ?? APPROVAL_CONFIG.PENDING!;
+  const isApproved = approvalKey === "APPROVED";
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -345,13 +345,13 @@ export default function DoctorProfilePage() {
           >
             {isApproved
               ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-              : <AlertCircle  className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"   />}
+              : <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />}
             <div>
               <p className="font-semibold">Account Status: {approvalCfg.label}</p>
               {!isApproved && (
                 <p className="mt-0.5 text-sm opacity-80">
-                  {approvalKey === "PENDING"   && "Your profile is under admin review. You cannot accept appointments yet."}
-                  {approvalKey === "REJECTED"  && (doctor as any).rejectionReason
+                  {approvalKey === "PENDING" && "Your profile is under admin review. You cannot accept appointments yet."}
+                  {approvalKey === "REJECTED" && (doctor as any).rejectionReason
                     ? `Reason: ${(doctor as any).rejectionReason}` : ""}
                   {approvalKey === "SUSPENDED" && "Your account has been suspended. Contact support."}
                 </p>
@@ -594,7 +594,7 @@ export default function DoctorProfilePage() {
                 {errors.specializations}
               </p>
             )}
-            <fieldset>
+            <fieldset className="min-w-0">
               <legend className="sr-only">Select specializations</legend>
               <div className="flex flex-wrap gap-2">
                 {SPECIALIZATIONS.map((spec) => {
@@ -664,12 +664,12 @@ export default function DoctorProfilePage() {
             </h3>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
               {[
-                { label: "Full Name",      value: getFullName(doctor) },
-                { label: "Qualification",  value: doctor.qualification ?? "—" },
-                { label: "Experience",     value: doctor.experienceYears != null ? `${doctor.experienceYears} years` : "—" },
-                { label: "Consult Fee",    value: doctor.consultationFee != null ? `₹${doctor.consultationFee}` : "—" },
+                { label: "Full Name", value: getFullName(doctor) },
+                { label: "Qualification", value: doctor.qualification ?? "—" },
+                { label: "Experience", value: doctor.experienceYears != null ? `${doctor.experienceYears} years` : "—" },
+                { label: "Consult Fee", value: doctor.consultationFee != null ? `₹${doctor.consultationFee}` : "—" },
                 { label: "Specializations", value: doctor.specializations?.join(", ") || "—", span: true },
-                { label: "Bio",            value: doctor.bio ?? "—", span: true, pre: true },
+                { label: "Bio", value: doctor.bio ?? "—", span: true, pre: true },
               ].map(({ label, value, span, pre }) => (
                 <div key={label} className={span ? "sm:col-span-2" : ""}>
                   <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</dt>
@@ -696,7 +696,7 @@ function ProfileSection({
   children: React.ReactNode;
 }) {
   return (
-    <fieldset className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+    <fieldset className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
       <legend className="flex items-center gap-2 text-sm font-semibold text-slate-700">
         <span className="text-slate-400">{icon}</span>
         {title}

@@ -15,7 +15,7 @@ export function DashboardLayout({ role, children }: DashboardLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-screen overflow-hidden bg-background">
       {/* Sidebar */}
       <Sidebar
         role={role}

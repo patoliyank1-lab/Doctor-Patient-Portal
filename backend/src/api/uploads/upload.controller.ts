@@ -15,6 +15,7 @@ export const getPresignedUrl = asyncHandler(async (req, res) => {
     if (!req.user?.userId) throw new AppError("Unauthorized", 401);
     const input = presignedUrlSchema.parse(req.body);
     const result = await uploadService.generatePresignedUrl(input);
+    console.log(`[DEBUG]: ${result}`)
     formattedResponse(res, 200, result, "Presigned URL generated successfully");
   } catch (error) {
     if (error instanceof ZodError) {

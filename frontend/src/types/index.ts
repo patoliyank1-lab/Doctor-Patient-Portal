@@ -106,6 +106,7 @@ export interface Appointment {
   reason: string;
   status: AppointmentStatus;
   notes?: string;              // Doctor's clinical notes
+  scheduledAt: string;
   createdAt: string;
   updatedAt: string;
 }

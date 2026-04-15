@@ -11,17 +11,13 @@ import {
 import { getDoctors } from "@/lib/api/doctors";
 import { PageContainer } from "@/components/layout/PageContainer";
 import type { Doctor } from "@/types";
+import { SPECIALIZATIONS } from "@/lib/constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SPECIALIZATIONS = [
-  "Cardiologist", "Dermatologist", "Neurologist", "Orthopedist",
-  "Pediatrician", "Psychiatrist", "General Physician", "ENT Specialist",
-  "Ophthalmologist", "Gynecologist", "Oncologist", "Radiologist",
-  "Gastroenterologist", "Pulmonologist", "Endocrinologist",
-];
+
 
 const PAGE_SIZE = 12;
 
@@ -229,22 +225,12 @@ export default function FindDoctorsPage() {
   const [doctors, setDoctors]           = useState<Doctor[]>([]);
   const [total, setTotal]               = useState(0);
   const [page, setPage]                 = useState(1);
-  const [search, setSearch]             = useState("");
-  const [debouncedSearch, setDebounced] = useState("");
-  const [selectedSpec, setSelectedSpec] = useState("");
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState("");
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  // ── Debounce search ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebounced(search);
-      setPage(1);
-    }, 350);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search]);
+  const [draftSearch, setDraftSearch]     = useState("");
+  const [draftSpec, setDraftSpec]         = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedSpec, setAppliedSpec]     = useState("");
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState("");
 
   // ── Fetch doctors ────────────────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
@@ -254,8 +240,8 @@ export default function FindDoctorsPage() {
       const res = await getDoctors({
         page,
         limit: PAGE_SIZE,
-        search: debouncedSearch || undefined,
-        specialization: selectedSpec || undefined,
+        search: appliedSearch || undefined,
+        specialization: appliedSpec || undefined,
       });
       setDoctors((res.data ?? []) as Doctor[]);
       setTotal(res.total ?? 0);
@@ -264,17 +250,25 @@ export default function FindDoctorsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, selectedSpec]);
+  }, [page, appliedSearch, appliedSpec]);
 
   useEffect(() => { fetchDoctors(); }, [fetchDoctors]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasFilters = !!debouncedSearch || !!selectedSpec;
+  const hasFilters = !!appliedSearch || !!appliedSpec;
+
+  function applyFilters() {
+    setAppliedSearch(draftSearch);
+    setAppliedSpec(draftSpec);
+    setPage(1);
+  }
 
   function clearFilters() {
-    setSearch("");
-    setSelectedSpec("");
+    setDraftSearch("");
+    setDraftSpec("");
+    setAppliedSearch("");
+    setAppliedSpec("");
     setPage(1);
   }
 
@@ -289,23 +283,24 @@ export default function FindDoctorsPage() {
     >
       <div className="space-y-6">
 
-        {/* ── Search + clear row ─────────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* ── Filter Row ─────────────────────────────────────────── */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          
           {/* Search input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               id="doctor-search"
               type="text"
               placeholder="Search by name or specialization…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+              value={draftSearch}
+              onChange={(e) => setDraftSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
-            {search && (
+            {draftSearch && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={() => setDraftSearch("")}
                 aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
               >
@@ -314,50 +309,50 @@ export default function FindDoctorsPage() {
             )}
           </div>
 
-          {/* Clear all filters button */}
-          {hasFilters && (
+          {/* Specialization dropdown */}
+          <div className="relative w-full lg:w-64 shrink-0">
+            <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <SlidersHorizontal className="h-4 w-4" />
+            </div>
+            <select
+              id="specialization-select"
+              value={draftSpec}
+              onChange={(e) => setDraftSpec(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="">All Specializations</option>
+              {SPECIALIZATIONS.map((spec) => (
+                <option key={spec} value={spec}>
+                  {spec}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              onClick={clearFilters}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+              onClick={applyFilters}
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98]"
             >
-              <X className="h-3.5 w-3.5" />
-              Clear all
+              Apply Filter
             </button>
-          )}
-        </div>
-
-        {/* ── Specialization filter pills ───────────────────────────────── */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Filter by specialization
-            </span>
-            {selectedSpec && (
-              <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-bold text-white">
-                1
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {SPECIALIZATIONS.map((spec) => (
+            
+            {hasFilters && (
               <button
-                key={spec}
                 type="button"
-                onClick={() => {
-                  setSelectedSpec((prev) => (prev === spec ? "" : spec));
-                  setPage(1);
-                }}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                  selectedSpec === spec
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                }`}
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
               >
-                {spec}
+                Clear
               </button>
-            ))}
+            )}
           </div>
         </div>
 

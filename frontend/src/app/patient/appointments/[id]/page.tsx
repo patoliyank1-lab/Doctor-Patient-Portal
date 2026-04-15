@@ -335,7 +335,7 @@ export default function AppointmentDetailPage() {
                 {
                   icon: <Calendar className="h-4 w-4 text-blue-500" />,
                   label: "Date & Time",
-                  value: formatDateTime(slot?.date ?? slot?.startTime ?? (appointment as any).scheduledAt),
+                  value: formatDateTime(appointment.scheduledAt ?? slot?.date),
                 },
                 ...(slot?.startTime ? [{
                   icon: <Clock className="h-4 w-4 text-purple-500" />,
