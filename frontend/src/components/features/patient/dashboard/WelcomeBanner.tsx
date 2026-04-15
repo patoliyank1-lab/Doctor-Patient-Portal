@@ -1,5 +1,6 @@
 import { Calendar, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { formatSlotTime } from "@/lib/utils";
 
 interface WelcomeBannerUser {
   name?: string;
@@ -27,17 +28,8 @@ function getInitials(name?: string, email?: string): string {
   return (email ?? "").slice(0, 2).toUpperCase();
 }
 
-function formatTime(timeStr: string): string {
-  try {
-    return new Date(timeStr).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return timeStr;
-  }
-}
+// Timezone-safe time formatter from centralized utils
+const formatTime = (timeStr: string) => formatSlotTime(timeStr);
 
 export function WelcomeBanner({ user, todayAppointment }: WelcomeBannerProps) {
   const hour = new Date().getHours();

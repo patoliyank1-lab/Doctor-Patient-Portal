@@ -23,6 +23,7 @@ import {
 import { getAppointmentById, cancelAppointment } from "@/lib/api/appointments";
 import { submitReview } from "@/lib/api/reviews";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { formatSlotTime, formatSlotDate } from "@/lib/utils";
 import type { Appointment } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,27 +39,12 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string 
   rescheduled: { label: "Rescheduled", dot: "bg-purple-400",  badge: "bg-purple-100 text-purple-700 border-purple-200" },
 };
 
+// Timezone-safe formatters from centralized utils
 function formatDateTime(iso?: string): string {
   if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-    }).format(new Date(iso));
-  } catch { return iso; }
+  return `${formatSlotDate(iso)}, ${formatSlotTime(iso)}`;
 }
-
-function formatTime(iso?: string): string {
-  if (!iso) return "—";
-  try {
-    if (/^\d{2}:\d{2}/.test(iso)) {
-      const [h, m] = iso.split(":");
-      const d = new Date(); d.setHours(Number(h), Number(m));
-      return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-    }
-    return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-  } catch { return iso; }
-}
+const formatTime = (iso?: string) => formatSlotTime(iso ?? "");
 
 function getDoctorInfo(apt: Appointment) {
   const d = apt.doctor as any;

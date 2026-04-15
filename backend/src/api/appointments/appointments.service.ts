@@ -196,6 +196,18 @@ export const bookAppointment = async (
 
       const scheduledAt = combineDateAndTimeUtc(slot.date, slot.startTime);
 
+      // ── DEBUG: Trace time values at booking ──────────────────────────
+      console.log("[TZ-DEBUG] bookAppointment — slot from DB:", {
+        slotId: slot.id,
+        "slot.date (raw)": slot.date,
+        "slot.date (ISO)": slot.date?.toISOString?.(),
+        "slot.startTime (raw)": slot.startTime,
+        "slot.startTime (ISO)": slot.startTime?.toISOString?.(),
+        "slot.endTime (ISO)": slot.endTime?.toISOString?.(),
+        "scheduledAt (combined)": scheduledAt.toISOString(),
+      });
+      // ── END DEBUG ────────────────────────────────────────────────────
+
       const created = await tx.appointment.create({
         data: {
           patientId,
@@ -206,6 +218,16 @@ export const bookAppointment = async (
         },
         select: appointmentSelect,
       });
+
+      // ── DEBUG: Trace created appointment response ────────────────────
+      console.log("[TZ-DEBUG] bookAppointment — created appointment:", {
+        appointmentId: (created as any).id,
+        "created.slot.date (ISO)": (created as any).slot?.date?.toISOString?.(),
+        "created.slot.startTime (ISO)": (created as any).slot?.startTime?.toISOString?.(),
+        "created.slot.endTime (ISO)": (created as any).slot?.endTime?.toISOString?.(),
+        "created.scheduledAt (ISO)": (created as any).scheduledAt?.toISOString?.(),
+      });
+      // ── END DEBUG ────────────────────────────────────────────────────
 
       return created as any;
     });

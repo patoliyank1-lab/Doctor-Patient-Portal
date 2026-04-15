@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { getMyAppointments, updateAppointmentStatus } from "@/lib/api/appointments";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { cn } from "@/lib/utils";
+import { cn, formatSlotTime, formatSlotDateShort } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Appointment } from "@/types";
 import type { AppointmentStatus } from "@/lib/api/appointments";
@@ -27,32 +27,11 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string; dot: string 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// Helpers — timezone-safe formatters from centralized utils
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatDate(iso?: string | Date): string {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      day: "numeric", month: "short", year: "numeric",
-    }).format(new Date(iso as string));
-  } catch { return String(iso); }
-}
-
-function formatTime(iso?: string | Date): string {
-  if (!iso) return "";
-  try {
-    const s = String(iso);
-    // Handle "HH:MM:SS" time-only strings from Prisma @db.Time
-    if (/^\d{2}:\d{2}/.test(s)) {
-      const [h, m] = s.split(":");
-      const d = new Date();
-      d.setHours(Number(h), Number(m));
-      return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-    }
-    return new Date(s).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-  } catch { return String(iso); }
-}
+const formatDate = (iso?: string | Date) => formatSlotDateShort(String(iso ?? ""));
+const formatTime = (iso?: string | Date) => formatSlotTime(String(iso ?? ""));
 
 function getPatientName(apt: Appointment): string {
   const p = apt.patient as any;

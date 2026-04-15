@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getMyAppointments, cancelAppointment } from "@/lib/api/appointments";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { formatSlotTime, formatSlotDateShort } from "@/lib/utils";
 import type { Appointment } from "@/types";
 import type { AppointmentStatus } from "@/lib/api/appointments";
 
@@ -31,14 +32,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   rescheduled: { label: "Rescheduled", color: "bg-purple-100 text-purple-700", icon: <RefreshCw className="h-3.5 w-3.5" /> },
 };
 
+// Timezone-safe date+time formatter using centralized utils
 function formatDateTime(iso?: string): string {
   if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      day: "numeric", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-    }).format(new Date(iso));
-  } catch { return iso; }
+  return `${formatSlotDateShort(iso)} ${formatSlotTime(iso)}`;
 }
 
 function getDoctorName(apt: Appointment): string {

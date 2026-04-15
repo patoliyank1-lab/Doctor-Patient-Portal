@@ -59,7 +59,7 @@ export function DoctorCard({ doctor, showBook = true }: DoctorCardProps) {
           </div>
 
           <span className="font-semibold text-foreground">
-            {formatCurrency(doctor.consultationFee)}
+            {formatCurrency(doctor.consultationFee ?? 0)}
             <span className="text-xs font-normal text-muted-foreground">
               {" "}
               / visit

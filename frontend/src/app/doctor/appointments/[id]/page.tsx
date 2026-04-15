@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { getAppointmentById, updateAppointmentStatus, addAppointmentNotes } from "@/lib/api/appointments";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { cn } from "@/lib/utils";
+import { cn, formatSlotTime, formatSlotDate } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Appointment } from "@/types";
 
@@ -30,30 +30,11 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string; dot: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// Helpers — timezone-safe formatters from centralized utils
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatDate(iso?: string | Date): string {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric",
-    }).format(new Date(iso as string));
-  } catch { return String(iso); }
-}
-
-function formatTime(iso?: string | Date): string {
-  if (!iso) return "—";
-  try {
-    const s = String(iso);
-    if (/^\d{2}:\d{2}/.test(s)) {
-      const [h, m] = s.split(":");
-      const d = new Date(); d.setHours(Number(h), Number(m));
-      return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-    }
-    return new Date(s).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-  } catch { return String(iso); }
-}
+const formatDate = (iso?: string | Date) => formatSlotDate(String(iso ?? ""));
+const formatTime = (iso?: string | Date) => formatSlotTime(String(iso ?? ""));
 
 function calcAge(dateOfBirth?: Date | string | null): number | null {
   if (!dateOfBirth) return null;

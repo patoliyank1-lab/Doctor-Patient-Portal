@@ -26,36 +26,16 @@ import { getMyDoctorProfile } from "@/lib/api/doctors";
 import { getMyAppointments } from "@/lib/api/appointments";
 import { getRecentNotifications } from "@/lib/api/notifications";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { cn } from "@/lib/utils";
+import { cn, formatSlotTime, formatSlotDateShort } from "@/lib/utils";
 import type { Doctor, Appointment, Notification } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// Helpers — timezone-safe formatters from centralized utils
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatTime(iso?: string): string {
-  if (!iso) return "—";
-  try {
-    if (/^\d{2}:\d{2}/.test(iso)) {
-      const [h, m] = iso.split(":");
-      const d = new Date();
-      d.setHours(Number(h), Number(m));
-      return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-    }
-    return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-  } catch {
-    return iso;
-  }
-}
-
-function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  } catch {
-    return iso;
-  }
-}
+// Alias the centralized formatters so all existing call-sites keep working
+const formatTime = (iso?: string) => formatSlotTime(iso ?? "");
+const formatDate = (iso?: string) => formatSlotDateShort(iso ?? "");
 
 function timeAgo(iso: string): string {
   try {

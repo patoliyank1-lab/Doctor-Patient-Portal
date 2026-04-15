@@ -223,6 +223,22 @@ export const createSlotForDoctor = async (userId: string, input: SlotInput): Pro
         select: slotSelect,
       });
 
+      // ── DEBUG: Trace time values at slot creation ────────────────────
+      console.log("[TZ-DEBUG] createSlot:", {
+        input: { date: input.date, startTime: input.startTime, endTime: input.endTime },
+        constructed: {
+          "date (ISO)": date.toISOString(),
+          "start (ISO)": start.toISOString(),
+          "end (ISO)": end.toISOString(),
+        },
+        stored: {
+          "created.date (ISO)": (created as any).date?.toISOString?.(),
+          "created.startTime (ISO)": (created as any).startTime?.toISOString?.(),
+          "created.endTime (ISO)": (created as any).endTime?.toISOString?.(),
+        },
+      });
+      // ── END DEBUG ────────────────────────────────────────────────────
+
       return created as SlotRow;
     });
   } catch (error) {

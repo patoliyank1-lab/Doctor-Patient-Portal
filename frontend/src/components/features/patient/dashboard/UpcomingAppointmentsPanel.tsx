@@ -3,6 +3,7 @@ import { CalendarDays, ArrowRight } from "lucide-react";
 import { AppointmentStatusBadge } from "./AppointmentStatusBadge";
 import { CancelAppointmentButton } from "./CancelAppointmentButton";
 import { EmptyState } from "./EmptyState";
+import { formatSlotDateDay, formatSlotTime } from "@/lib/utils";
 
 // ── Shape that matches the actual backend response ─────────────────────────────
 export interface DashboardAppointment {
@@ -29,30 +30,8 @@ export interface DashboardAppointment {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatSlotDate(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatSlotTime(timeStr: string): string {
-  try {
-    return new Date(timeStr).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return timeStr;
-  }
-}
+// Timezone-safe formatters from centralized utils
+const formatSlotDate = formatSlotDateDay;
 
 const AVATAR_COLORS = [
   "from-blue-500 to-blue-700",
