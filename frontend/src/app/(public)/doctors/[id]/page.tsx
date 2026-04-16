@@ -89,7 +89,7 @@ async function getReviews(doctorId: string): Promise<BackendReview[]> {
 /** Slots — public endpoint, no auth needed */
 async function getSlots(doctorId: string): Promise<BackendSlot[]> {
   try {
-    const res = await fetch(`${BASE}/slots/doctor/${doctorId}`, {
+    const res = await fetch(`${BASE}/slots/doctor/${doctorId}?limit=100`, {
       cache: "no-store",
     });
     if (!res.ok) return [];
@@ -212,8 +212,24 @@ export default async function DoctorProfilePage({ params }: PageProps) {
   const now = new Date();
   // Filter: future date AND not already booked
   const upcomingSlots = slots
-    .filter((s) => new Date(s.date) >= now && !s.isBooked)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter((s) => {
+      if (s.isBooked) return false;
+      const sd = new Date(s.date);
+      const st = new Date(s.startTime);
+      const slotTime = new Date(
+        sd.getUTCFullYear(),
+        sd.getUTCMonth(),
+        sd.getUTCDate(),
+        st.getUTCHours(),
+        st.getUTCMinutes()
+      );
+      return slotTime >= now;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.date).getTime() + new Date(a.startTime).getUTCHours() * 3600000 + new Date(a.startTime).getUTCMinutes() * 60000;
+      const bTime = new Date(b.date).getTime() + new Date(b.startTime).getUTCHours() * 3600000 + new Date(b.startTime).getUTCMinutes() * 60000;
+      return aTime - bTime;
+    })
     .slice(0, 15);
 
   const slotsByDate = upcomingSlots.reduce<Record<string, BackendSlot[]>>((acc, s) => {
