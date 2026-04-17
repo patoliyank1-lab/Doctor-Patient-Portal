@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Stethoscope } from "lucide-react";
 import { ROUTES } from "@/lib/constants";
+import Image from "next/image";
+import logo from "@/../assets/logo.webp";
 
 /**
  * PublicFooter — shared footer for all public pages: /, /about, /doctors.
@@ -14,11 +16,12 @@ export function PublicFooter() {
           {/* Brand */}
           <Link
             href={ROUTES.HOME}
-            className="flex items-center gap-2 font-bold text-foreground"
+            className="flex items-center font-bold text-foreground"
             aria-label="MediConnect home"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <Stethoscope className="h-4 w-4 text-white" aria-hidden />
+            <div className="size-10 overflow-hidden flex justify-center items-center">
+              {/* <Stethoscope className="h-4 w-4 text-white" aria-hidden /> */}
+              <Image src={logo} alt="Logo" height={80} width={80}  />
             </div>
             MediConnect
           </Link>

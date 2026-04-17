@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HeroSection from "@/components/HeroSection";
 import type { Metadata } from "next";
 import {
   Calendar,
@@ -136,75 +137,8 @@ export default function LandingPage() {
   return (
     <>
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 px-4 py-24 sm:px-6 sm:py-32">
-        {/* Decorative blobs */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-40 left-1/3 h-[600px] w-[600px] rounded-full bg-white/5 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 right-1/4 h-[500px] w-[500px] rounded-full bg-blue-400/10 blur-3xl"
-        />
 
-        <div className="relative mx-auto max-w-4xl text-center">
-          {/* Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium text-blue-100 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
-            </span>
-            Trusted by 50,000+ patients across India
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
-            Your Health,{" "}
-            <span className="relative">
-              <span className="relative z-10">Connected</span>
-              <span
-                aria-hidden
-                className="absolute bottom-1 left-0 right-0 h-3 -skew-x-3 bg-white/20"
-              />
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/90">
-            MediConnect bridges the gap between patients and qualified doctors.
-            Book appointments, manage medical records, and access quality
-            healthcare — all in one seamless platform.
-          </p>
-
-          {/* CTA buttons */}
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/auth/register"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg hover:bg-blue-50 transition-all active:scale-[0.98]"
-            >
-              Book an Appointment
-              <ArrowRight className="h-5 w-5" aria-hidden />
-            </Link>
-            <Link
-              href="/auth/register?role=doctor"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-sm hover:bg-white/20 transition-all"
-            >
-              Join as a Doctor
-            </Link>
-          </div>
-
-          {/* Trust indicators */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            {["No hidden fees", "Verified doctors only", "Instant confirmation"].map(
-              (item) => (
-                <div key={item} className="flex items-center gap-2 text-sm text-blue-100/80">
-                  <CheckCircle className="h-4 w-4 text-green-400" aria-hidden />
-                  {item}
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <section className="border-b border-border bg-muted/30">
@@ -348,7 +282,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA Banner ────────────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 px-4 py-20 sm:px-6">
+      <section className="bg-gradient-to-r to-[#04586d66] from-blue-800 px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
             Ready to take charge of your health?

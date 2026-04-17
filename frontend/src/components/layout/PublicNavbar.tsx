@@ -26,9 +26,15 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { useAuthStore, useCurrentUser, useIsAuthenticated } from "@/store/useAuthStore";
+import {
+  useAuthStore,
+  useCurrentUser,
+  useIsAuthenticated,
+} from "@/store/useAuthStore";
 import { logout } from "@/lib/api/auth";
 import type { UserRole } from "@/types";
+import Image from "next/image";
+import logo from "@/../assets/logo.webp";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -84,7 +90,7 @@ function NavAvatar({ email, role }: { email: string; role: UserRole }) {
     <div
       className={cn(
         "flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-semibold text-xs text-white ring-2 ring-white/30",
-        colorClass
+        colorClass,
       )}
       aria-hidden
     >
@@ -158,7 +164,7 @@ function UserMenu() {
           id="public-user-menu-trigger"
           className={cn(
             "flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-200",
-            "hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            "hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
           aria-label="User menu"
         >
@@ -171,7 +177,7 @@ function UserMenu() {
             <span
               className={cn(
                 "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                ROLE_BADGE[role]
+                ROLE_BADGE[role],
               )}
             >
               <RoleIcon size={9} />
@@ -191,7 +197,7 @@ function UserMenu() {
           className={cn(
             "z-50 w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           )}
         >
           {/* User info card */}
@@ -205,7 +211,7 @@ function UserMenu() {
               <span
                 className={cn(
                   "mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-                  ROLE_BADGE[role]
+                  ROLE_BADGE[role],
                 )}
               >
                 <RoleIcon size={9} />
@@ -221,7 +227,7 @@ function UserMenu() {
               href={dashboardRoute}
               className={cn(
                 "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700",
-                "cursor-pointer outline-none transition-colors hover:bg-slate-100"
+                "cursor-pointer outline-none transition-colors hover:bg-slate-100",
               )}
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
@@ -242,7 +248,7 @@ function UserMenu() {
               "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium",
               "cursor-pointer outline-none transition-colors",
               "text-red-600 hover:bg-red-50",
-              "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed"
+              "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed",
             )}
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-50">
@@ -260,7 +266,13 @@ function UserMenu() {
 // Mobile menu
 // ─────────────────────────────────────────────────────────────────────────────
 
-function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function MobileMenu({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const isAuthenticated = useIsAuthenticated();
   const user = useCurrentUser();
   const role = user?.role as UserRole | undefined;
@@ -335,39 +347,46 @@ export function PublicNavbar() {
       className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
-
         {/* ── Logo ──────────────────────────────────────────────────────── */}
-        <Link
-          href="/"
-          id="navbar-logo"
-          className="flex items-center gap-2 font-bold text-foreground shrink-0"
-          aria-label="MediConnect home"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Stethoscope className="h-4 w-4 text-white" aria-hidden="true" />
-          </div>
-          <span className="text-lg tracking-tight">MediConnect</span>
-        </Link>
-
-        {/* ── Desktop nav links ──────────────────────────────────────────── */}
-        <nav
-          className="hidden items-center gap-6 text-sm font-medium sm:flex"
-          aria-label="Public navigation"
-        >
+        <div className="flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
           <Link
-            href={ROUTES.DOCTORS}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            href="/"
+            id="navbar-logo"
+            className="flex items-center font-bold text-foreground shrink-0"
+            aria-label="MediConnect home"
           >
-            Find Doctors
+            <div className="flex items-center justify-center rounded-lg ">
+              {/* <Stethoscope className="h-4 w-4 text-white" aria-hidden="true" /> */}
+              <Image src={logo} alt="Logo" width={80} height={80} />
+            </div>
+            {/* <span className="text-lg  text-to-[#04586d66] from-blue-800 ">MediConnect</span> */}
           </Link>
-          <Link
-            href={ROUTES.ABOUT}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            About
-          </Link>
-        </nav>
 
+          {/* ── Desktop nav links ──────────────────────────────────────────── */}
+          <nav
+            className="hidden items-center gap-6 text-sm font-medium sm:flex"
+            aria-label="Public navigation"
+          >
+            <Link
+              href={ROUTES.HOME}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              href={ROUTES.DOCTORS}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Find Doctors
+            </Link>
+            <Link
+              href={ROUTES.ABOUT}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              About
+            </Link>
+          </nav>
+        </div>
         {/* ── Right section: auth UI ─────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {/* Auth-based rendering */}

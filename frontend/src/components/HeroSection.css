@@ -1,0 +1,402 @@
+/* CSS Variables */
+:root {
+  --bg-color: #F8FAFC;
+  --text-main: #0A1628;
+  --text-muted: #475569;
+  --accent-cta: #0891B2;
+  --accent-cta-hover: #06728C;
+  --accent-light: #E0F2FE;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Background Pattern - Subtle dots */
+.bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.4;
+  z-index: -2;
+}
+
+/* Subtle radial gradient to break flats */
+.bg-gradient {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(14,165,233,0.08) 0%, rgba(248,250,252,0) 70%);
+  z-index: -1;
+  border-radius: 50%;
+}
+
+
+
+/* Layout */
+.hero-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  max-width: 1300px;
+  margin: 0 auto;
+  /* padding: 40px 24px; */
+  position: relative;
+  font-family: var(--font-body);
+  background-color: var(--bg-color);
+  /* background-color: #059669; */
+  color: var(--text-main);
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+@media (min-width: 992px) {
+  .hero-container {
+    flex-direction: row;
+    padding: 50px 32px;
+  }
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 600px;
+  z-index: 10;
+  padding-top: 40px;
+}
+
+.hero-visual {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 60px;
+  min-height: 500px;
+}
+
+@media (min-width: 992px) {
+  .hero-visual {
+    margin-top: 0;
+    min-height: 600px;
+    justify-content: flex-end;
+  }
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+  margin-bottom: 32px;
+}
+
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10B981;
+  border-radius: 50%;
+  position: relative;
+}
+
+.badge-dot::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background-color: inherit;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: -1;
+}
+
+/* Typography */
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(48px, 6vw, 80px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  margin-bottom: 24px;
+}
+
+.highlight-wrapper {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.highlight-wrapper .word {
+  position: relative;
+  z-index: 2;
+}
+
+.highlight-wrapper svg {
+  position: absolute;
+  bottom: 2px;
+  left: -2%;
+  width: 104%;
+  height: auto;
+  z-index: 1;
+}
+
+.subheadline {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+  max-width: 520px;
+}
+
+/* CTA Buttons */
+.cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.0625rem;
+  padding: 16px 32px;
+  border-radius: 50px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--accent-cta);
+  color: white;
+  border: 2px solid var(--accent-cta);
+  box-shadow: 0 10px 20px -8px rgba(8, 145, 178, 0.4);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-cta-hover);
+  border-color: var(--accent-cta-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px -10px rgba(8, 145, 178, 0.5);
+}
+
+.btn-primary .arrow {
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+}
+
+.btn-primary:hover .arrow {
+  transform: translateX(4px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 2px solid var(--text-main);
+}
+
+.btn-secondary:hover {
+  background-color: var(--text-main);
+  color: white;
+}
+
+/* Trust Badges */
+.trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.trust-badge svg {
+  width: 18px;
+  height: 18px;
+  fill: #10B981;
+}
+
+.separator {
+  width: 4px;
+  height: 4px;
+  background-color: #CBD5E1;
+  border-radius: 50%;
+}
+
+/* Visual Element styling */
+.illustration-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 550px;
+  aspect-ratio: 1;
+}
+
+.main-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 20px 40px rgba(8, 145, 178, 0.08));
+}
+
+/* Glassmorphism Stat Cards */
+.stat-card {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 15px 35px -5px rgba(10, 22, 40, 0.08);
+  z-index: 10;
+}
+
+.stat-content h4 {
+  font-size: 1.125rem;
+  z-index: 5;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.stat-content p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-blue { background: #E0F2FE; color: #0284C7; }
+.icon-green { background: #D1FAE5; color: #059669; }
+.icon-amber { background: #FEF3C7; color: #D97706; }
+
+.stat-card.card-1 {
+  top: 10%;
+  left: -5%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.stat-card.card-2 {
+  bottom: 15%;
+  left: -10%;
+  animation: float 8s ease-in-out infinite 1s;
+}
+
+.stat-card.card-3 {
+  top: 40%;
+  right: 0%;
+  animation: float 7s ease-in-out infinite 2s;
+}
+
+@media (max-width: 991px) {
+  .stat-card {
+    transform: scale(0.85);
+  }
+  .stat-card.card-1 { top: 0%; left: 0%; }
+  .stat-card.card-2 { bottom: 0%; left: 0%; }
+  .stat-card.card-3 { top: 50%; right: 0%; transform: scale(0.85) translateY(-50%); }
+}
+
+/* Animations Setup */
+.stagger-in {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes pulse {
+  0% { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+
+@keyframes slideUpFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0); }
+}
+
+/* SVG internal animation classes */
+.svg-node-pulse {
+  transform-origin: center;
+  animation: svgNodePulse 4s infinite ease-in-out;
+}
+.svg-node-pulse-del1 { animation-delay: 1s; }
+.svg-node-pulse-del2 { animation-delay: 2s; }
+
+@keyframes svgNodePulse {
+  0%, 100% { r: 6px; fill-opacity: 0.9; }
+  50% { r: 8px; fill-opacity: 1; stroke-width: 4px; }
+}
+
+.svg-dash {
+  stroke-dasharray: 6 6;
+  animation: dashMove 20s linear infinite;
+}
+
+@keyframes dashMove {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* JavaScript controlled classes */
+.animate-start .stagger-in:nth-child(1) { animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.1s; }
+.animate-start .stagger-in:nth-child(2) { animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.2s; }
+.animate-start .stagger-in:nth-child(3) { animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.3s; }
+.animate-start .stagger-in:nth-child(4) { animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.4s; }
+.animate-start .stagger-in:nth-child(5) { animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.5s; }
+
+.animate-start .illustration-wrapper { 
+  animation: slideUpFade 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.3s;
+  opacity: 0;
+  transform: translateY(30px);
+}
