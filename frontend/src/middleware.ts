@@ -58,7 +58,9 @@ export function middleware(request: NextRequest) {
 
   // Derive role from whichever token is valid (prefer access token)
   const payload = accessValid ? accessPayload : (refreshValid ? refreshPayload : null);
-  const role = payload ? payload.role.toLowerCase() : null;
+  const role = payload && typeof payload.role === "string" && payload.role.trim()
+    ? payload.role.trim().toLowerCase()
+    : null;
 
   // ── Protected routes (/patient, /doctor, /admin) ─────────────────────────
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>

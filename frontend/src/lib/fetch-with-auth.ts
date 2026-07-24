@@ -64,6 +64,13 @@ interface FetchWithAuthOptions extends RequestInit {
 /** Single in-flight refresh promise — prevents parallel token refresh floods */
 let refreshPromise: Promise<boolean> | null = null;
 
+function isBuildPhase(): boolean {
+  return (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.NEXT_PHASE === "phase-production-server"
+  );
+}
+
 /**
  * In-flight GET request map.
  * If two identical GET requests fire simultaneously, the second one
@@ -175,6 +182,13 @@ export async function fetchWithAuth<T = unknown>(
 
     // ── 6. 401 → silent token refresh ─────────────────────────────────────
     if (response.status === 401) {
+      // During Next.js build/static generation there is no real user session,
+      // so protected requests should not fail the build. Return a neutral null
+      // value instead of surfacing auth errors to the build pipeline.
+      if (isBuildPhase()) {
+        return null as T;
+      }
+
       // If caller opted into silent mode (e.g. auth hydration check),
       // simply return null — "not logged in" is not an error.
       if (_skipRefresh && (options as FetchWithAuthOptions)._silentOn401) {
@@ -283,6 +297,10 @@ async function ensureTokenRefreshed(): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function callRefreshEndpoint(): Promise<boolean> {
+  if (isBuildPhase()) {
+    return false;
+  }
+
   try {
     const resolvedBase =
       typeof window === "undefined" && API_BASE_URL.startsWith("/")
