@@ -1,5 +1,8 @@
 # MediConnect – Doctor–Patient Portal Project Report
 
+## Preview
+<video src="Docs/Screencast%20from%2015-04-26.webm" controls="controls" muted="muted" width="100%"></video>
+
 ## Project Overview
 
 **Project Name:** MediConnect – Doctor–Patient Portal
